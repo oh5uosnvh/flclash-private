@@ -117,6 +117,15 @@ class ProfilesLocator {
     );
   }
 
+  /// Whether the grid is resting at (or within half a pixel of) the top. The
+  /// title tap uses this to decide between "go to top" and "explain why
+  /// locating is unavailable" — the explanation only fires once the user is
+  /// already at the top.
+  bool isAtTop() {
+    if (!_canScroll) return true;
+    return controller.offset <= _minExtent + 0.5;
+  }
+
   void toBottom() {
     if (!_canScroll) return;
     controller.animateTo(

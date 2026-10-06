@@ -92,27 +92,35 @@ class _ProfilesViewState extends ConsumerState<ProfilesView> {
         : [];
   }
 
-  /// Tap: scroll to the selected profile. When that profile is already on
-  /// screen the scroll would do nothing, so a second tap goes back to the top.
-  /// Long press: jump to the bottom of the list.
+  /// Tap: 回顶部永远优先——选中卡在屏上时回到顶部；选中卡在当前筛选列表里
+  /// 但不在屏上时定位到它；选中卡被筛选隐藏/未选择时，第一次点击仍先回顶部，
+  /// 只有已经在顶部时才提示定位不可用的原因。长按：直接跳到列表底部。
   void _handleTitleTap() {
-    if (!_isSelectedVisible) {
-      if (_revealSelected?.call() ?? false) return;
-      if (!mounted) return;
-      final hasSelection =
-          ref.read(
-            profilesStateProvider.select((state) => state.currentProfileId),
-          ) !=
-          null;
-      context.showNotifier(
-        hasSelection
-            ? context.appLocalizations.profilesLocateHidden
-            : context.appLocalizations.profilesLocateNone,
-        level: MessageLevel.info,
-      );
+    if (_isSelectedVisible) {
+      _locator?.toTop();
       return;
     }
-    _locator?.toTop();
+    final currentProfileId = ref.read(
+      profilesStateProvider.select((state) => state.currentProfileId),
+    );
+    final hasSelection = currentProfileId != null;
+    if (hasSelection) {
+      final profiles = ref.read(profilesStateProvider).profiles;
+      final filtered = profiles.applyFilterAndSort(_filter, _sort);
+      if (filtered.any((profile) => profile.id == currentProfileId)) {
+        if (_revealSelected?.call() ?? false) return;
+      }
+    }
+    if (!(_locator?.isAtTop() ?? true)) {
+      _locator?.toTop();
+      return;
+    }
+    context.showNotifier(
+      hasSelection
+          ? context.appLocalizations.profilesLocateHidden
+          : context.appLocalizations.profilesLocateNone,
+      level: MessageLevel.info,
+    );
   }
 
   void _handleTitleLongPress() {
