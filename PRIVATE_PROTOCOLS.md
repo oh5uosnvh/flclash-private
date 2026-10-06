@@ -1,0 +1,148 @@
+# FlClash private-protocol build
+
+This private repository links four verified protocol extensions into the same Android arm64 and Windows amd64 core.
+
+## Source linkage (v2 — modular kernel)
+
+The Mihomo kernel is NO LONGER vendored. It lives in its own private repo
+**`oh5uosnvh/clash-meta-mods`** (branch `mods`, based on chen08209/Clash.Meta
+`0f7f05ad` = FlClash 0.8.96's pinned kernel, +2 additive commits: f87a52d2
+x365+xhttp, a7ee1b1a shanlian anytls). CI clones it at build time
+(`kernel_ref` input, default `mods`) into `core/Clash.Meta`.
+
+| Feature | Source location | Integration |
+|---|---|---|
+| x365 (365VPN / efan) | clash-meta-mods: `transport/x365` + outbound/parser | kernel repo commit f87a52d2 |
+| Blackstone private Clash `type: xhttp` | clash-meta-mods: `transport/blackstonexhttp` + outbound/parser | kernel repo commit f87a52d2 |
+| ViewTurbo modified SS | `core/sing-shadowsocks2-viewturbo` (frozen snapshot) | `core/go.mod replace` |
+| Shanlian (LightXtreme) AnyTLS | clash-meta-mods: `transport/anytls` + converter | kernel repo commit a7ee1b1a |
+
+### Kernel update SOP
+
+Upstream (chen08209/Clash.Meta) releases a new FlClash kernel:
+
+1. Clone clash-meta-mods locally, `git fetch upstream && git rebase <new-ref> mods`
+   — conflicts can only appear in `adapter/parser.go` / `constant/adapters.go`
+   (a ~10-line registration block); everything else is additive new files.
+2. Push the rebased `mods` branch.
+3. Dispatch this workflow — `kernel_ref` stays `mods`.
+
+The public `oh5uosnvh/FlClash` repository is not modified and contains none of these implementation details.
+
+## Configuration
+
+### x365
+
+```yaml
+proxies:
+  - name: x365-hk
+    type: x365
+    server: bgp01.example.com
+    port: 443
+    uuid: 376aac10-754a-4b62-9855-6683c9adafce
+    tls: true
+    servername: updates.cdn-apple.com
+    client-fingerprint: chrome
+    network: xhttp
+    reality-opts:
+      public-key: BASE64URL_X25519_PUBLIC_KEY
+      short-id: c7cb949d076c9e93
+    xhttp-opts:
+      host: updates.cdn-apple.com
+      path: /hk
+      mode: stream-one
+    udp: true
+```
+
+x365 is **not** standard VLESS. Its inner request starts with `X365`, so the independent `type: x365` must be retained.
+
+### Blackstone VPN xhttp
+
+The proxy type is exactly `xhttp`, as in the official decrypted Clash YAML. It is not renamed to `heysocks`.
+
+```yaml
+proxies:
+  - name: Blackstone
+    type: xhttp
+    server: 101.116.156.114
+    port: 40081
+    gateway: af45.iotstacker.com:20244
+    cipher: aes-128-ctr
+    password: "KEY1:LENGTH_PREFIXED_KEY2"
+    sess: 68_BYTE_HEX_SESSION
+    # auth: TOKEN_HEX       # optional; overrides token embedded in password key2
+    udp: true
+    udp-over-tcp: true
+```
+
+The implementation also directly accepts official fields:
+
+```yaml
+    fake-net:
+      tcp: 68_BYTE_HEX_SESSION
+      udp: 68_BYTE_HEX_SESSION
+    padding-len: 8-64
+    network: xhttp
+    tls: true
+    servername: apple.com
+    client-fingerprint: chrome
+    xhttp-opts:
+      host: apple.com
+      path: /hEK8lz27
+```
+
+If `gateway` is absent, an official name ending `-gateway.host-port` is recognized. Explicit `gateway` is safer. The server-issued session/token can rotate; stale values will not authenticate.
+
+### ViewTurbo
+
+```yaml
+proxies:
+  - name: ViewTurbo
+    type: ss
+    server: 203.0.113.10
+    port: 15889
+    cipher: chacha20-ietf-poly1305
+    password: "password#viewTurbo"
+    udp: true
+```
+
+The suffix selects the private handshake and is stripped before standard Shadowsocks key derivation. Ordinary Shadowsocks nodes remain unchanged.
+
+### Shanlian AnyTLS
+
+Shanlian mode is explicit: only a valid 64-hex password ending in `#SL` uses the provider-compatible 32-byte preamble. Every unmarked or malformed value follows stock AnyTLS SHA-256 behavior.
+
+```yaml
+proxies:
+  - name: Shanlian
+    type: anytls
+    server: 203.0.113.20
+    port: 6573
+    password: "ACCOUNT32HEX_TICKET28HEX_COUNTER4HEX#SL"
+    sni: p3.byteimg.com
+    client-fingerprint: chrome
+    skip-cert-verify: true
+    udp: true
+```
+
+For an `anytls://` share link, percent-encode the marker as `%23SL`; the converter also maps `fp=chrome` to `client-fingerprint: chrome`. Marked nodes default to Chrome when that field is omitted. The settings frame uses `client=sing-anytls/0.0.11`; ordinary AnyTLS retains Mihomo's original client metadata.
+
+Because `#` starts a YAML comment, the password must be quoted. A stale provider-issued ticket will authenticate neither direct nor chained nodes.
+
+## Build exactly the two requested targets
+
+Run **Actions → manual-build → Run workflow → both**. The matrix builds only:
+
+- Android arm64-v8a APK (debug-signing fallback when release secrets are absent)
+- Windows amd64 portable ZIP (no Inno Setup installer)
+
+The workflow runs source tests first and then scans packaged binaries for all private-protocol markers. Missing linkage fails the build instead of producing a false-success artifact.
+
+## Local verification
+
+```bash
+(cd core/Clash.Meta && go test ./transport/anytls/... ./transport/x365 ./transport/blackstonexhttp ./adapter/outbound ./adapter ./common/convert)
+(cd core/sing-shadowsocks2-viewturbo && go test ./...)
+```
+
+Core implementation details are in [`core/Clash.Meta/docs/private-protocols.md`](core/Clash.Meta/docs/private-protocols.md).

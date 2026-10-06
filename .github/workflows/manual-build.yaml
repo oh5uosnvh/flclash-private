@@ -1,0 +1,246 @@
+name: manual-build
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build'
+        required: true
+        default: 'android'
+        type: choice
+        options:
+          - both
+          - android
+          - windows
+      kernel_ref:
+        description: 'clash-meta-mods ref (branch/sha) — kernel with private protocols'
+        required: false
+        default: 'mods'
+      run_checks:
+        description: 'Run format/analyze/tests before packaging'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+env:
+  FLUTTER_VERSION: '3.47.4'
+  GO_VERSION: '1.26.4'
+  NDK_VERSION: 'r28c'
+
+jobs:
+  # Upstream's own checks only run for public repositories or a manual dispatch
+  # of build.yaml, so this fork had no gate at all: a broken tree shipped as a
+  # release. The same three commands upstream trusts run here first, and the
+  # build waits on them.
+  checks:
+    if: github.event.inputs.run_checks != 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      # The override contract tests read the core's parse surface straight off
+      # the filesystem, so the kernel has to be there even without a build.
+      - name: Fetch kernel (clash-meta-mods)
+        shell: bash
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          rm -rf core/Clash.Meta
+          git clone "https://x-access-token:${GH_PAT}@github.com/oh5uosnvh/clash-meta-mods.git" core/Clash.Meta
+          cd core/Clash.Meta
+          git checkout "${{ github.event.inputs.kernel_ref || 'mods' }}"
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: plugins/rust_api/rust
+          cache-directories: .dart_tool/hooks_runner
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Check format
+        run: dart format --output=none --set-exit-if-changed lib test tool plugins setup.dart
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      # The Go core build hook needs the NDK toolchain, which this job has no
+      # reason to pay for; the tests never load the core itself. The rust_api
+      # hook stays on: code_forge's tests dlopen librust_api.so.
+      - name: Skip the native build hooks
+        run: |
+          yq -i '.hooks.user_defines.setup.build_assets = false' pubspec.yaml
+
+      - name: Run tests
+        run: flutter test --reporter expanded
+
+  build:
+    needs: checks
+    if: always() && (needs.checks.result == 'success' || needs.checks.result == 'skipped')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: android
+            os: ubuntu-latest
+            arch: arm64
+          - platform: android
+            os: ubuntu-latest
+            arch: arm
+          - platform: windows
+            os: windows-2022
+            arch: amd64
+    steps:
+      - name: Skip unselected platform
+        id: gate
+        shell: bash
+        run: |
+          sel="${{ github.event.inputs.platform }}"
+          if [ "$sel" = "both" ] || [ "$sel" = "${{ matrix.platform }}" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping ${{ matrix.platform }} (selected: $sel)"
+          fi
+
+      - name: Maximize disk space
+        if: steps.gate.outputs.run == 'true' && startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost
+          sudo apt-get clean
+          df -h /
+
+      - name: Checkout
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Fetch kernel (clash-meta-mods)
+        if: steps.gate.outputs.run == 'true'
+        shell: bash
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          git clone "https://x-access-token:${GH_PAT}@github.com/oh5uosnvh/clash-meta-mods.git" core/Clash.Meta
+          cd core/Clash.Meta
+          git checkout "${{ github.event.inputs.kernel_ref || 'mods' }}"
+          git log --oneline -3
+
+      - name: Setup Go
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: |
+            core/go.sum
+
+      - name: Setup Rust cache
+        if: steps.gate.outputs.run == 'true'
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.platform }}-${{ matrix.arch }}
+          workspaces: services/helper
+          cache-directories: .dart_tool/hooks_runner
+
+      - name: Setup Gradle
+        if: steps.gate.outputs.run == 'true' && startsWith(matrix.platform,'android')
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Enable git long paths (Windows)
+        if: steps.gate.outputs.run == 'true' && startsWith(matrix.os, 'windows')
+        run: git config --global core.longpaths true
+
+      - name: Setup Flutter
+        if: steps.gate.outputs.run == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Setup NDK
+        if: steps.gate.outputs.run == 'true' && startsWith(matrix.platform,'android')
+        uses: nttld/setup-ndk@v1
+        id: build-ndk
+        with:
+          ndk-version: ${{ env.NDK_VERSION }}
+          add-to-path: true
+          link-to-sdk: true
+
+      # The runner image exports a stripped preinstalled NDK via
+      # ANDROID_NDK_HOME; the native-asset hooks (rust bindgen) then fail to
+      # find libclang. Pin every NDK variable to the r28c we just installed.
+      - name: Get Flutter Dependency
+        if: steps.gate.outputs.run == 'true'
+        env:
+          ANDROID_NDK_HOME: ${{ steps.build-ndk.outputs.ndk-path }}
+          ANDROID_NDK_ROOT: ${{ steps.build-ndk.outputs.ndk-path }}
+        run: |
+          flutter --version
+          flutter pub get
+
+      - name: Test private protocol sources
+        if: steps.gate.outputs.run == 'true'
+        env:
+          ANDROID_NDK_HOME: ${{ steps.build-ndk.outputs.ndk-path }}
+          ANDROID_NDK_ROOT: ${{ steps.build-ndk.outputs.ndk-path }}
+        shell: bash
+        run: |
+          (cd core/Clash.Meta && go test ./transport/anytls/... ./transport/x365 ./transport/blackstonexhttp ./transport/oppa ./adapter/outbound ./adapter ./common/convert)
+          (cd core/sing-shadowsocks2-viewturbo && go test ./...)
+
+      - name: Build android (${{ matrix.arch }})
+        if: steps.gate.outputs.run == 'true' && matrix.platform == 'android'
+        env:
+          ANDROID_NDK_HOME: ${{ steps.build-ndk.outputs.ndk-path }}
+          ANDROID_NDK_ROOT: ${{ steps.build-ndk.outputs.ndk-path }}
+        run: dart setup.dart android --arch ${{ matrix.arch }} -v
+
+      - name: Build windows portable zip (amd64)
+        if: steps.gate.outputs.run == 'true' && matrix.platform == 'windows'
+        run: dart setup.dart windows --targets zip -v
+
+      - name: Verify linked protocol markers
+        if: steps.gate.outputs.run == 'true'
+        run: python .github/scripts/verify_private_protocols.py ./dist
+
+      - name: Upload (best-effort artifact)
+        if: steps.gate.outputs.run == 'true'
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: flclash-${{ matrix.platform }}-${{ matrix.arch }}
+          path: ./dist
+          overwrite: true
+
+      # Release assets bypass the Actions artifact storage quota, which is
+      # only recalculated every 6-12h after deletions.
+      - name: Upload to GitHub Release
+        if: steps.gate.outputs.run == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          tag="build-${GITHUB_RUN_NUMBER}-${{ matrix.platform }}-${{ matrix.arch }}"
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" \
+            --title "FlClash 0.8.99-pre.6 mod build $GITHUB_RUN_NUMBER (${{ matrix.platform }}-${{ matrix.arch }})" \
+            --notes "manual-build run $GITHUB_RUN_NUMBER, kernel ref: ${{ github.event.inputs.kernel_ref || 'mods' }} (oppa + x365 + xhttp + viewTurbo + anytls)" \
+            --prerelease || true
+          gh release upload "$tag" ./dist/* --repo "$GITHUB_REPOSITORY" --clobber
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets -q '.assets[].name'
