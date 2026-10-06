@@ -26,7 +26,6 @@ require (
 	github.com/coreos/go-iptables v0.8.0 // indirect
 	github.com/dlclark/regexp2 v1.12.0 // indirect
 	github.com/dunglas/httpsfv v1.0.2 // indirect
-	github.com/easytier/easytier/easytier-go v0.0.0-20260910071355-3d0c9c3ca5e2 // indirect
 	github.com/enfein/mieru/v3 v3.38.0 // indirect
 	github.com/ericlagergren/aegis v0.0.0-20250325060835-cd0defd64358 // indirect
 	github.com/ericlagergren/polyval v0.0.0-20220411101811-e25bc10ba391 // indirect
@@ -98,10 +97,8 @@ require (
 	github.com/metacubex/tfo-go v0.0.0-20260623020846-376a77860b8c // indirect
 	github.com/metacubex/tls v0.1.8 // indirect
 	github.com/metacubex/utls v1.8.8 // indirect
-	github.com/metacubex/wazero v0.0.0-20260628025728-9ae6bdcf2a7d // indirect
 	github.com/metacubex/wireguard-go v0.0.0-20250820062549-a6cecdd7f57f // indirect
 	github.com/metacubex/yamux v0.0.0-20250918083631-dd5f17c0be49 // indirect
-	github.com/metacubex/zerotier-go v0.0.0-20260813124750-13fa6f45da5f // indirect
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/mroth/weightedrand/v2 v2.1.0 // indirect
 	github.com/oasisprotocol/deoxysii v0.0.0-20220228165953-2091330c22b7 // indirect
@@ -131,7 +128,6 @@ require (
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	gitlab.com/go-extension/aes-ccm v0.0.0-20230221065045-e58665ef23c7 // indirect
 	gitlab.com/yawning/bsaes.git v0.0.0-20190805113838-0a714cd429ec // indirect
-	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
 	go4.org/netipx v0.0.0-20260823151212-3075585bcbeb // indirect
 	golang.org/x/crypto v0.33.0 // indirect
@@ -145,4 +141,5 @@ require (
 	golang.org/x/time v0.10.0 // indirect
 	golang.org/x/tools v0.24.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
