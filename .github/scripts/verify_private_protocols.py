@@ -10,6 +10,7 @@ import zipfile
 
 MARKERS = {
     b"x365: invalid response magic": "x365",
+    b"Chrome/120.0.0.0 Safari/537.36": "x365 official XHTTP User-Agent",
     b"xhttp: response magic not found": "Blackstone type=xhttp",
     b"#viewTurbo": "ViewTurbo trigger",
     b"2n6LtY0nIPV2": "ViewTurbo auth",

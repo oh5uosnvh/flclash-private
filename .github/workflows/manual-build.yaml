@@ -6,7 +6,7 @@ on:
       platform:
         description: 'Platform to build'
         required: true
-        default: 'android'
+        default: 'both'
         type: choice
         options:
           - both
@@ -15,7 +15,7 @@ on:
       kernel_ref:
         description: 'clash-meta-mods ref (branch/sha) — kernel with private protocols'
         required: false
-        default: 'mods'
+        default: '6f89252150993dafef673d1ed168fd99a8d00271'
       run_checks:
         description: 'Run format/analyze/tests before packaging'
         required: true
@@ -55,6 +55,8 @@ jobs:
           git clone "https://x-access-token:${GH_PAT}@github.com/oh5uosnvh/clash-meta-mods.git" core/Clash.Meta
           cd core/Clash.Meta
           git checkout "${{ github.event.inputs.kernel_ref || 'mods' }}"
+          grep -q 'Chrome/120.0.0.0' adapter/outbound/x365.go
+          grep -q 'prepareX365XHTTPHeaders(v.option.XHTTPOpts.Headers)' adapter/outbound/x365.go
 
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
@@ -140,6 +142,8 @@ jobs:
           git clone "https://x-access-token:${GH_PAT}@github.com/oh5uosnvh/clash-meta-mods.git" core/Clash.Meta
           cd core/Clash.Meta
           git checkout "${{ github.event.inputs.kernel_ref || 'mods' }}"
+          grep -q 'Chrome/120.0.0.0' adapter/outbound/x365.go
+          grep -q 'prepareX365XHTTPHeaders(v.option.XHTTPOpts.Headers)' adapter/outbound/x365.go
           git log --oneline -3
 
       - name: Setup Go
@@ -202,6 +206,7 @@ jobs:
           ANDROID_NDK_ROOT: ${{ steps.build-ndk.outputs.ndk-path }}
         shell: bash
         run: |
+          (cd core/Clash.Meta && go test ./transport/x365 ./adapter/outbound -run 'TestX365|TestRequestWireFormat|TestResponseValidation' -count=1)
           (cd core/Clash.Meta && go test ./transport/anytls/... ./transport/x365 ./transport/blackstonexhttp ./transport/oppa ./adapter/outbound ./adapter ./common/convert)
           (cd core/sing-shadowsocks2-viewturbo && go test ./...)
 
@@ -220,13 +225,13 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         run: python .github/scripts/verify_private_protocols.py ./dist
 
-      - name: Upload (best-effort artifact)
+      - name: Upload artifact
         if: steps.gate.outputs.run == 'true'
-        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: flclash-${{ matrix.platform }}-${{ matrix.arch }}
           path: ./dist
+          if-no-files-found: error
           overwrite: true
 
       # Release assets bypass the Actions artifact storage quota, which is
@@ -237,10 +242,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN"
+          test -d ./dist
+          find ./dist -maxdepth 1 -type f -print -quit | grep -q .
           tag="build-${GITHUB_RUN_NUMBER}-${{ matrix.platform }}-${{ matrix.arch }}"
-          gh release create "$tag" --repo "$GITHUB_REPOSITORY" \
+          if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" \
             --title "FlClash 0.8.99-pre.6 mod build $GITHUB_RUN_NUMBER (${{ matrix.platform }}-${{ matrix.arch }})" \
             --notes "manual-build run $GITHUB_RUN_NUMBER, kernel ref: ${{ github.event.inputs.kernel_ref || 'mods' }} (oppa + x365 + xhttp + viewTurbo + anytls)" \
-            --prerelease || true
+            --prerelease
+          fi
           gh release upload "$tag" ./dist/* --repo "$GITHUB_REPOSITORY" --clobber
           gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets -q '.assets[].name'
