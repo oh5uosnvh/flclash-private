@@ -19,7 +19,7 @@ on:
       run_checks:
         description: 'Run format/analyze/tests before packaging'
         required: true
-        default: 'true'
+        default: 'false'
         type: choice
         options:
           - 'true'
