@@ -26,7 +26,11 @@ void main() {
       );
       for (var repeat = 0; repeat < 3; repeat++) {
         locator.toBottom();
-        await tester.pumpAndSettle();
+        await tester.pump();
+        for (var frame = 0; frame < 30; frame++) {
+          await tester.pump(const Duration(microseconds: 16667));
+        }
+        await tester.pump();
         expect(find.text('profile-79'), findsOneWidget);
         expect(
           controller.position.maxScrollExtent - controller.offset,

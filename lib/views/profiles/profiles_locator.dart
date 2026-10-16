@@ -133,34 +133,33 @@ class ProfilesLocator {
 
   void cancel() => _scrollGeneration++;
 
-  /// Masonry's maxScrollExtent is an estimate until the last children are
-  /// laid out. Never fling to that stale estimate: a large jump can leave
-  /// only the final tile in the lazy sliver's correction window.
+  /// Re-read the lazy layout's extent each frame, but share one 500ms
+  /// budget instead of adding a separate animation for every viewport.
   Future<void> toBottom() async {
     final generation = ++_scrollGeneration;
-    var stableFrames = 0;
+    if (!_canScroll || !controller.position.hasContentDimensions) return;
+    controller.jumpTo(controller.offset);
+    final binding = WidgetsBinding.instance;
+    final started = binding.currentFrameTimeStamp;
+    var previousProgress = 0.0;
     for (var attempt = 0; attempt < 240; attempt++) {
+      await binding.endOfFrame;
       if (!_canScroll || generation != _scrollGeneration) return;
-      final position = controller.position;
-      if (!position.hasContentDimensions) return;
+      final elapsed = binding.currentFrameTimeStamp - started;
+      final time = (elapsed.inMicroseconds / 500000).clamp(0.0, 1.0);
+      final progress = Curves.easeOutCubic.transform(time);
+      final fraction = previousProgress >= 1
+          ? 1.0
+          : ((progress - previousProgress) / (1 - previousProgress))
+                .clamp(0.0, 1.0);
       final remaining = _maxExtent - controller.offset;
-      if (remaining <= 0.5) {
-        stableFrames++;
-        if (stableFrames >= 3) return;
-      } else {
-        stableFrames = 0;
-        final step = position.viewportDimension * 0.8;
-        final target = (controller.offset + remaining.clamp(0.0, step)).clamp(
-          _minExtent,
-          _maxExtent,
-        );
-        await controller.animateTo(
-          target,
-          duration: const Duration(milliseconds: 70),
-          curve: Curves.linear,
-        );
-      }
-      await WidgetsBinding.instance.endOfFrame;
+      final target = (controller.offset + remaining * fraction).clamp(
+        _minExtent,
+        _maxExtent,
+      );
+      controller.jumpTo(target);
+      previousProgress = progress;
+      if (time >= 1) return;
     }
   }
 }
