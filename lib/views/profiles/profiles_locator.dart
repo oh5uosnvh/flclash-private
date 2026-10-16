@@ -150,8 +150,10 @@ class ProfilesLocator {
       final progress = Curves.easeOutCubic.transform(time);
       final fraction = previousProgress >= 1
           ? 1.0
-          : ((progress - previousProgress) / (1 - previousProgress))
-                .clamp(0.0, 1.0);
+          : ((progress - previousProgress) / (1 - previousProgress)).clamp(
+              0.0,
+              1.0,
+            );
       final remaining = _maxExtent - controller.offset;
       final target = (controller.offset + remaining * fraction).clamp(
         _minExtent,
