@@ -76,6 +76,7 @@ jobs:
         run: |
           flutter pub get
           dart run intl_utils:generate
+          dart format lib/l10n lib/views/profiles/profiles.dart test/features/custom_distribution_startup_test.dart
 
       - name: Check format
         run: dart format --output=none --set-exit-if-changed lib test tool plugins setup.dart
@@ -202,6 +203,7 @@ jobs:
           flutter --version
           flutter pub get
           dart run intl_utils:generate
+          dart format lib/l10n lib/views/profiles/profiles.dart test/features/custom_distribution_startup_test.dart
 
       - name: Test private protocol sources
         if: steps.gate.outputs.run == 'true'
