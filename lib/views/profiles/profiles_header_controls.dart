@@ -262,7 +262,7 @@ class _JoinedSegment extends StatelessWidget {
     final content = Padding(
       // Tight horizontal padding so the two halves read as one pill rather
       // than two separate buttons, and enough vertical room to sit inside the
-      // 34px bar without clipping the label's descenders.
+      // 34dp bar without clipping the label's descenders.
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       child: Text(
         label,
