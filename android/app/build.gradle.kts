@@ -1,4 +1,3 @@
-import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
@@ -6,7 +5,7 @@ plugins {
     id("com.android.application")
     id("dev.flutter.flutter-gradle-plugin")
     // This distribution has its own application ID, not the upstream Firebase app.
-    id("com.google.firebase.crashlytics")
+
 }
 
 val localProperties = Properties().apply {
@@ -80,9 +79,6 @@ android {
                 "proguard-rules.pro",
             )
 
-            configure<CrashlyticsExtension> {
-                nativeSymbolUploadEnabled = hasReleaseSigning
-            }
         }
     }
 
@@ -100,13 +96,6 @@ kotlin {
 
 flutter {
     source = "../.."
-}
-
-// The Crashlytics plugin finalizes R8 with the mapping upload but leaves the native symbol upload to the caller.
-if (hasReleaseSigning) {
-    tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.configureEach {
-        finalizedBy("uploadCrashlyticsSymbolFileRelease")
-    }
 }
 
 dependencies {
