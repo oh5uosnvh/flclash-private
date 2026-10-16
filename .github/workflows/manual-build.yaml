@@ -12,10 +12,11 @@ on:
           - both
           - android
           - windows
+          - checks
       kernel_ref:
         description: 'clash-meta-mods ref (branch/sha) — kernel with private protocols'
         required: false
-        default: '6f89252150993dafef673d1ed168fd99a8d00271'
+        default: 'f9e57bed45849988d610ab37500123b4dff25b3c'
       run_checks:
         description: 'Run format/analyze/tests before packaging'
         required: true
@@ -92,7 +93,7 @@ jobs:
 
   build:
     needs: checks
-    if: always() && (needs.checks.result == 'success' || needs.checks.result == 'skipped')
+    if: always() && inputs.platform != 'checks' && (needs.checks.result == 'success' || needs.checks.result == 'skipped')
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

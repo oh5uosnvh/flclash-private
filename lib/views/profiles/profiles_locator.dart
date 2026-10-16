@@ -40,6 +40,7 @@ class ProfilesLocator {
   /// top, 1 at the bottom); it only seeds the first guess and is corrected as
   /// soon as the card exists.
   void reveal(GlobalKey key, {required double fraction}) {
+    cancel();
     if (!_canScroll) return;
     if (_settle(key)) return;
     controller.jumpTo(
@@ -57,8 +58,9 @@ class ProfilesLocator {
     required int attempt,
   }) {
     if (attempt >= _maxAttempts) return;
+    final generation = _scrollGeneration;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_canScroll) return;
+      if (!_canScroll || generation != _scrollGeneration) return;
       if (_settle(key)) return;
       // The card is still not built. Step in the direction the estimate says it
       // lies; stepping only one way would strand a target that the first guess
@@ -109,6 +111,7 @@ class ProfilesLocator {
   }
 
   void toTop() {
+    cancel();
     if (!_canScroll) return;
     controller.animateTo(
       _minExtent,
@@ -126,12 +129,38 @@ class ProfilesLocator {
     return controller.offset <= _minExtent + 0.5;
   }
 
-  void toBottom() {
-    if (!_canScroll) return;
-    controller.animateTo(
-      _maxExtent,
-      duration: _settleDuration,
-      curve: Curves.easeOutCubic,
-    );
+  int _scrollGeneration = 0;
+
+  void cancel() => _scrollGeneration++;
+
+  /// Masonry's maxScrollExtent is an estimate until the last children are
+  /// laid out. Never fling to that stale estimate: a large jump can leave
+  /// only the final tile in the lazy sliver's correction window.
+  Future<void> toBottom() async {
+    final generation = ++_scrollGeneration;
+    var stableFrames = 0;
+    for (var attempt = 0; attempt < 240; attempt++) {
+      if (!_canScroll || generation != _scrollGeneration) return;
+      final position = controller.position;
+      if (!position.hasContentDimensions) return;
+      final remaining = _maxExtent - controller.offset;
+      if (remaining <= 0.5) {
+        stableFrames++;
+        if (stableFrames >= 3) return;
+      } else {
+        stableFrames = 0;
+        final step = position.viewportDimension * 0.8;
+        final target = (controller.offset + remaining.clamp(0.0, step)).clamp(
+          _minExtent,
+          _maxExtent,
+        );
+        await controller.animateTo(
+          target,
+          duration: const Duration(milliseconds: 70),
+          curve: Curves.linear,
+        );
+      }
+      await WidgetsBinding.instance.endOfFrame;
+    }
   }
 }

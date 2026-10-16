@@ -65,6 +65,7 @@ type Method struct {
 	constructor   func(key []byte) (cipher.AEAD, error)
 	key           []byte
 	vtOn          bool
+	vtAuthToken   string
 }
 
 func NewMethod(methodName string, options C.MethodOptions) (*Method, error) {
@@ -144,10 +145,10 @@ func NewMethod(methodName string, options C.MethodOptions) (*Method, error) {
 	} else if options.Password == "" {
 		return nil, C.ErrMissingPassword
 	} else {
-		password := options.Password
-		if vtIsMagic(password) {
-			m.vtOn = true
-			password = password[:len(password)-len(vtMagic)]
+		password, token, enabled := vtParsePassword(options.Password)
+		m.vtOn, m.vtAuthToken = enabled, token
+		if enabled && token == "" {
+			return nil, C.ErrMissingPassword
 		}
 		m.key = legacykey.Key([]byte(password), m.keySaltLength)
 	}
@@ -169,7 +170,7 @@ func (m *Method) DialConn(conn net.Conn, destination M.Socksaddr) (net.Conn, err
 		if _, err := conn.Write(vtPrefix()); err != nil {
 			return nil, err
 		}
-		if _, err := conn.Write(vtAuthPacket()); err != nil {
+		if _, err := conn.Write(vtAuthPacket(m.vtAuthToken)); err != nil {
 			return nil, err
 		}
 		// viewTurbo: 延迟握手, 与 sing-box(NekoBox) 的 DialEarlyConn 行为对齐。
@@ -196,7 +197,7 @@ func (m *Method) DialConn(conn net.Conn, destination M.Socksaddr) (net.Conn, err
 func (m *Method) DialEarlyConn(conn net.Conn, destination M.Socksaddr) net.Conn {
 	if m.vtOn {
 		conn.Write(vtPrefix())
-		conn.Write(vtAuthPacket())
+		conn.Write(vtAuthPacket(m.vtAuthToken))
 	}
 	return &clientConn{
 		Conn:        conn,

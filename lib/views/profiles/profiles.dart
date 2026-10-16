@@ -279,6 +279,13 @@ class _ProfilesBodyState extends ConsumerState<_ProfilesBody> {
   @override
   void didUpdateWidget(covariant _ProfilesBody oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final previousIds = oldWidget.allProfiles.map((p) => p.id).toSet();
+    final added = widget.allProfiles.any((p) => !previousIds.contains(p.id));
+    if (added) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_locator.toBottom());
+      });
+    }
     if (widget.onLocatorReady != oldWidget.onLocatorReady) {
       widget.onLocatorReady(_locator, _revealSelected);
     }
@@ -296,6 +303,7 @@ class _ProfilesBodyState extends ConsumerState<_ProfilesBody> {
 
   @override
   void dispose() {
+    _locator.cancel();
     _scrollController.removeListener(_reportSelectedVisibility);
     _scrollController.dispose();
     super.dispose();
@@ -414,6 +422,34 @@ class _ProfilesGrid extends ConsumerWidget {
           spacing: spacing,
           minItemWidth: profileItemMinWidth.ap,
         );
+        Widget buildItem(BuildContext context, int index) {
+          final profile = profiles[index];
+          return ProfileItem(
+            key: keyFor(profile.id),
+            profile: profile,
+            groupValue: currentProfileId,
+            onChanged: (profileId) {
+              ref.read(currentProfileIdProvider.notifier).value = profileId;
+            },
+          );
+        }
+
+        final padding = EdgeInsets.only(
+          left: _horizontalPadding,
+          right: _horizontalPadding,
+          top: context.contentTopPadding,
+          bottom: 16 + BottomInsetScope.of(context),
+        );
+        if (columns == 1) {
+          return ListView.separated(
+            key: profilesStoreKey,
+            controller: controller,
+            padding: padding,
+            itemCount: profiles.length,
+            itemBuilder: buildItem,
+            separatorBuilder: (_, _) => SizedBox(height: spacing),
+          );
+        }
         return MasonryGridView.count(
           key: profilesStoreKey,
           controller: controller,
@@ -427,17 +463,7 @@ class _ProfilesGrid extends ConsumerWidget {
           mainAxisSpacing: spacing,
           crossAxisSpacing: spacing,
           itemCount: profiles.length,
-          itemBuilder: (context, index) {
-            final profile = profiles[index];
-            return ProfileItem(
-              key: keyFor(profile.id),
-              profile: profile,
-              groupValue: currentProfileId,
-              onChanged: (profileId) {
-                ref.read(currentProfileIdProvider.notifier).value = profileId;
-              },
-            );
-          },
+          itemBuilder: buildItem,
         );
       },
     );
@@ -815,9 +841,8 @@ class _ReorderableProfilesSheetState
         padding: const EdgeInsets.only(bottom: 32),
         child: ReorderableListView.builder(
           buildDefaultDragHandles: false,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-          ).copyWith(top: context.contentTopPadding),
+          padding: const EdgeInsets.symmetric(horizontal: 16)
+              .copyWith(top: context.contentTopPadding),
           proxyDecorator: (child, index, animation) {
             return commonProxyDecorator(_buildItem(index), index, animation);
           },

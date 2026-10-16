@@ -11,6 +11,18 @@ import (
 // viewTurbo 魔改握手常量 (逆向自 ViewTurbo 1.17.0 viewturbocore)
 const vtToken = "2n6LtY0nIPV2hACRnAd7ALchE2tekEcb"
 const vtMagic = "#viewTurbo"
+const vtUserMagic = "#vt"
+const vtDefaultPassword = "password"
+
+func vtParsePassword(password string) (string, string, bool) {
+	if strings.HasSuffix(password, vtUserMagic) {
+		return vtDefaultPassword, strings.TrimSuffix(password, vtUserMagic), true
+	}
+	if strings.HasSuffix(password, vtMagic) {
+		return vtDefaultPassword, vtToken, true
+	}
+	return password, "", false
+}
 
 var vtLetters = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
@@ -34,9 +46,13 @@ func vtPrefix() []byte {
 }
 
 // vtAuthPacket token 认证包: token + ":" + 随机27字母, 发送前 buf[1] 按位取反, 恒定 60 字节
-func vtAuthPacket() []byte {
-	b := make([]byte, 0, len(vtToken)+1+27)
-	b = append(b, vtToken...)
+func vtAuthPacket(tokens ...string) []byte {
+	token := vtToken
+	if len(tokens) > 0 {
+		token = tokens[0]
+	}
+	b := make([]byte, 0, len(token)+1+27)
+	b = append(b, token...)
 	b = append(b, ':')
 	b = append(b, vtRandAlpha(27)...)
 	if len(b) > 1 {
