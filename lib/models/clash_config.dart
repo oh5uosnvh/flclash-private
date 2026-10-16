@@ -30,14 +30,10 @@ const baselineDns = Dns(
   nameserver: ['https://doh.pub/dns-query', 'https://dns.alidns.com/dns-query'],
 );
 const defaultGeoXUrl = {
-  GeoResource.MMDB:
-      'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb',
-  GeoResource.ASN:
-      'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb',
-  GeoResource.GEOIP:
-      'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat',
-  GeoResource.GEOSITE:
-      'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat',
+  GeoResource.MMDB: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb',
+  GeoResource.ASN: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb',
+  GeoResource.GEOIP: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat',
+  GeoResource.GEOSITE: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat',
 };
 
 const defaultMixedPort = 7890;
@@ -388,9 +384,10 @@ extension CustomProxyExt on CustomProxy {
     'ss' => const {'server', 'port', 'password', 'cipher'},
     'ssr' => const {'server', 'port', 'password', 'cipher', 'obfs', 'protocol'},
     'vmess' => const {'server', 'port', 'uuid', 'alterId', 'cipher'},
-    'vless' => const {'server', 'port', 'uuid'},
+    'vless' || 'x365' => const {'server', 'port', 'uuid'},
+    'xhttp' => const {'server', 'port'},
     'snell' => const {'server', 'port', 'psk'},
-    'trojan' || 'anytls' => const {'server', 'port', 'password'},
+    'trojan' || 'anytls' || 'oppa' => const {'server', 'port', 'password'},
     'hysteria' => const {'server', 'up', 'down'},
     'hysteria2' => const {'server'},
     'wireguard' => const {'private-key'},
@@ -419,9 +416,13 @@ extension CustomProxyExt on CustomProxy {
       ProxyField.password,
     ],
     'vmess' => const [ProxyField.cipher, ProxyField.alterId, ProxyField.uuid],
-    'vless' => const [ProxyField.uuid],
+    'vless' || 'x365' => const [ProxyField.uuid],
+    'xhttp' => const [ProxyField.password],
     'tuic' => const [ProxyField.uuid, ProxyField.password],
-    'trojan' || 'anytls' || 'hysteria2' => const [ProxyField.password],
+    'trojan' ||
+    'anytls' ||
+    'hysteria2' ||
+    'oppa' => const [ProxyField.password],
     'hysteria' => const [ProxyField.up, ProxyField.down, ProxyField.authStr],
     'snell' => const [ProxyField.psk],
     'sudoku' => const [ProxyField.key],
@@ -1265,9 +1266,10 @@ Map<String, Object?> _overrideJson<K extends OverrideKey>(
       result[key.path] = value;
       continue;
     }
-    final nested =
-        result.putIfAbsent(parent, () => <String, Object?>{})
-            as Map<String, Object?>;
+    final nested = result.putIfAbsent(
+      parent,
+      () => <String, Object?>{},
+    ) as Map<String, Object?>;
     nested[key.field] = value;
   }
   return result;
