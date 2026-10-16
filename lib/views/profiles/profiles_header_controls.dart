@@ -144,7 +144,6 @@ class ProfilesHeaderControls extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 CommonPopupBox(
-                  backgroundColor: colorScheme.secondaryContainer,
                   popupBuilder: (_) => CommonPopupMenu(
                     items: [
                       for (final item in ProfilesFilterType.values)
@@ -177,7 +176,6 @@ class ProfilesHeaderControls extends StatelessWidget {
                   ),
                 ),
                 CommonPopupBox(
-                  backgroundColor: colorScheme.secondaryContainer,
                   popupBuilder: (_) => CommonPopupMenu(
                     items: [
                       for (final item in ProfilesSortType.values)
