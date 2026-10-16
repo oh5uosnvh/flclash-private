@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 /// Scrolling for the profiles grid, which builds its cards on demand.
@@ -140,12 +142,18 @@ class ProfilesLocator {
     if (!_canScroll || !controller.position.hasContentDimensions) return;
     controller.jumpTo(controller.offset);
     final binding = WidgetsBinding.instance;
-    final started = binding.currentFrameTimeStamp;
+    Future<Duration> nextFrame() {
+      final frame = Completer<Duration>();
+      binding.scheduleFrameCallback(frame.complete);
+      return frame.future;
+    }
+
+    final started = await nextFrame();
     var previousProgress = 0.0;
     for (var attempt = 0; attempt < 240; attempt++) {
-      await binding.endOfFrame;
+      final stamp = await nextFrame();
       if (!_canScroll || generation != _scrollGeneration) return;
-      final elapsed = binding.currentFrameTimeStamp - started;
+      final elapsed = stamp - started;
       final time = (elapsed.inMicroseconds / 500000).clamp(0.0, 1.0);
       final progress = Curves.easeOutCubic.transform(time);
       final fraction = previousProgress >= 1
