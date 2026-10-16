@@ -5,7 +5,7 @@ import java.util.Properties
 plugins {
     id("com.android.application")
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services")
+    // This distribution has its own application ID, not the upstream Firebase app.
     id("com.google.firebase.crashlytics")
 }
 
@@ -36,7 +36,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.follow.clash"
+        applicationId = "com.follow.clash.qiyiguo112"
         minSdk = flutter.minSdkVersion
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = flutter.versionCode
@@ -63,7 +63,7 @@ android {
     buildTypes {
         debug {
             isMinifyEnabled = false
-            applicationIdSuffix = ".dev"
+
         }
 
         release {
@@ -73,7 +73,6 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             } else {
                 signingConfig = signingConfigs.getByName("debug")
-                applicationIdSuffix = ".dev"
             }
 
             proguardFiles(
