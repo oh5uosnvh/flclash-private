@@ -905,5 +905,13 @@
   "required": "必填",
   "ageSecretKey": "age 私钥",
   "ageEncryptedProfile": "配置已加密",
-  "ageSecretKeyRequiredTip": "该配置已用 age 加密，需要 age 私钥才能解密"
+  "ageSecretKeyRequiredTip": "该配置已用 age 加密，需要 age 私钥才能解密",
+  "profilesFilterAll": "默认",
+  "profilesFilterUrl": "订阅",
+  "profilesFilterEmpty": "没有符合该筛选的配置",
+  "profilesLocateHidden": "当前配置被筛选条件隐藏了",
+  "profilesLocateNone": "还没有选择配置",
+  "profilesFilterFile": "本地",
+  "sortAscending": "升序",
+  "sortDescending": "降序"
 }

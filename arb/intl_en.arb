@@ -905,5 +905,13 @@
   "required": "Required",
   "ageSecretKey": "Age secret key",
   "ageEncryptedProfile": "Encrypted profile",
-  "ageSecretKeyRequiredTip": "This profile is encrypted with age and needs an age secret key to decrypt"
+  "ageSecretKeyRequiredTip": "This profile is encrypted with age and needs an age secret key to decrypt",
+  "profilesFilterAll": "All",
+  "profilesFilterUrl": "Subscription",
+  "profilesFilterEmpty": "No profiles match this filter",
+  "profilesLocateHidden": "The selected profile is hidden by the current filter",
+  "profilesLocateNone": "No profile is selected yet",
+  "profilesFilterFile": "Local",
+  "sortAscending": "Ascending",
+  "sortDescending": "Descending"
 }

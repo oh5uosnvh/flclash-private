@@ -905,5 +905,13 @@
   "required": "必須",
   "ageSecretKey": "age 秘密鍵",
   "ageEncryptedProfile": "暗号化されたプロファイル",
-  "ageSecretKeyRequiredTip": "このプロファイルは age で暗号化されており、復号には age 秘密鍵が必要です"
+  "ageSecretKeyRequiredTip": "このプロファイルは age で暗号化されており、復号には age 秘密鍵が必要です",
+  "profilesFilterAll": "デフォルト",
+  "profilesFilterUrl": "サブスクリプション",
+  "profilesFilterEmpty": "このフィルターに一致するプロファイルがありません",
+  "profilesLocateHidden": "選択中のプロファイルは現在のフィルターで非表示です",
+  "profilesLocateNone": "まだプロファイルが選択されていません",
+  "profilesFilterFile": "ローカル",
+  "sortAscending": "昇順",
+  "sortDescending": "降順"
 }

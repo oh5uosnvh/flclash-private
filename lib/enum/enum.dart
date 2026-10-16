@@ -888,3 +888,7 @@ enum ItemPosition {
     return ItemPosition.get(visualIndex, visualLength);
   }
 }
+
+enum ProfilesFilterType { all, url, file }
+
+enum ProfilesSortType { none, ascending, descending }

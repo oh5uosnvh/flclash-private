@@ -905,5 +905,13 @@
   "required": "Обязательно",
   "ageSecretKey": "Секретный ключ age",
   "ageEncryptedProfile": "Зашифрованный профиль",
-  "ageSecretKeyRequiredTip": "Профиль зашифрован с помощью age, для расшифровки нужен секретный ключ age"
+  "ageSecretKeyRequiredTip": "Профиль зашифрован с помощью age, для расшифровки нужен секретный ключ age",
+  "profilesFilterAll": "По умолчанию",
+  "profilesFilterUrl": "Подписка",
+  "profilesFilterEmpty": "Нет профилей, подходящих под этот фильтр",
+  "profilesLocateHidden": "Выбранный профиль скрыт текущим фильтром",
+  "profilesLocateNone": "Профиль ещё не выбран",
+  "profilesFilterFile": "Локальный",
+  "sortAscending": "По возрастанию",
+  "sortDescending": "По убыванию"
 }

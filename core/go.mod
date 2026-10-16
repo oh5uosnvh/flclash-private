@@ -4,6 +4,8 @@ go 1.27.0
 
 replace github.com/metacubex/mihomo => ./Clash.Meta
 
+replace github.com/metacubex/sing-shadowsocks2 => ./sing-shadowsocks2-viewturbo
+
 require (
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/dlclark/regexp2 v1.12.0

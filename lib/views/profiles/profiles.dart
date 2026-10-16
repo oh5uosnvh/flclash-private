@@ -17,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'add.dart';
 import 'edit.dart';
 import 'preview.dart';
+import 'profiles_header_controls.dart';
 
 const _infoGap = 4.0;
 
@@ -39,6 +40,15 @@ class ProfilesView extends ConsumerStatefulWidget {
 class _ProfilesViewState extends ConsumerState<ProfilesView> {
   Function? applyConfigDebounce;
   bool _isUpdating = false;
+  ProfilesFilterType _filter = ProfilesFilterType.all;
+  ProfilesSortType _sort = ProfilesSortType.ascending;
+  final _gridKey = GlobalKey<_ProfilesGridState>();
+
+  void _titleTap() {
+    final grid = _gridKey.currentState;
+    if (grid == null) return;
+    if (!grid.revealSelected()) grid.toTop();
+  }
 
   @override
   void initState() {
@@ -107,7 +117,21 @@ class _ProfilesViewState extends ConsumerState<ProfilesView> {
         final spacing = cardSpacing;
         return CommonScaffold(
           isLoading: isLoading,
-          title: appLocalizations.profiles,
+          titleWidget: ProfilesTitle(
+            title: appLocalizations.profiles,
+            onTap: state.profiles.isEmpty ? null : _titleTap,
+            onLongPress: state.profiles.isEmpty
+                ? null
+                : () => _gridKey.currentState?.toBottom(),
+            controls: state.profiles.length <= 1
+                ? null
+                : ProfilesHeaderControls(
+                    filter: _filter,
+                    sort: _sort,
+                    onFilterChanged: (value) => setState(() => _filter = value),
+                    onSortChanged: (value) => setState(() => _sort = value),
+                  ),
+          ),
           primaryAction: state.profiles.isEmpty
               ? null
               : IconButtonData(
@@ -118,7 +142,7 @@ class _ProfilesViewState extends ConsumerState<ProfilesView> {
           iconActions: _buildActions(state.profiles),
           foldPrimaryAction: true,
           body: NullStatusSwitcher(
-            isEmpty: state.profiles.isEmpty,
+            isEmpty: state.profiles.applyFilterAndSort(_filter, _sort).isEmpty,
             nullStatus: NullStatus(
               label: appLocalizations.nullTip(appLocalizations.profiles),
               description: appLocalizations.nullProfileDesc,
@@ -132,7 +156,9 @@ class _ProfilesViewState extends ConsumerState<ProfilesView> {
               ),
             ),
             child: _ProfilesGrid(
-              profiles: state.profiles,
+              key: _gridKey,
+              profiles: state.profiles.applyFilterAndSort(_filter, _sort),
+              allProfiles: state.profiles,
               currentProfileId: state.currentProfileId,
               spacing: spacing,
             ),
@@ -145,12 +171,15 @@ class _ProfilesViewState extends ConsumerState<ProfilesView> {
 
 class _ProfilesGrid extends ConsumerStatefulWidget {
   const _ProfilesGrid({
+    super.key,
     required this.profiles,
     required this.currentProfileId,
+    required this.allProfiles,
     required this.spacing,
   });
 
   final List<Profile> profiles;
+  final List<Profile> allProfiles;
   final int? currentProfileId;
   final double spacing;
 
@@ -199,32 +228,63 @@ class _ProfilesGridState extends ConsumerState<_ProfilesGrid> {
     minItemWidth: profileItemMinWidth.ap,
   );
 
-  void _revealSelected() {
-    if (!mounted || !_controller.hasClients) {
-      return;
-    }
-    final index = widget.profiles.indexWhere(
-      (profile) => profile.id == widget.currentProfileId,
+  Future<void> toBottom() async {
+    if (!mounted || !_controller.hasClients) return;
+    await _controller.animateTo(
+      _controller.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOutCubic,
     );
-    if (index == -1) {
-      return;
-    }
-    final position = _controller.position;
-    final padding = _padding;
-    final height = _profileItemHeight;
-    final row = index ~/ _columnsFor(context.size!.width);
-    final atTop = row * (height + widget.spacing);
-    final atBottom =
-        atTop + padding.vertical + height - position.viewportDimension;
-    if (position.pixels >= atBottom && position.pixels <= atTop) {
-      return;
-    }
-    _controller.jumpTo(
-      ((atTop + atBottom) / 2).clamp(
-        position.minScrollExtent,
-        position.maxScrollExtent,
+  }
+
+  void toTop() {
+    if (!_controller.hasClients) return;
+    unawaited(
+      _controller.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
       ),
     );
+  }
+
+  bool revealSelected() {
+    if (!mounted || !_controller.hasClients) return false;
+    final index = widget.profiles.indexWhere(
+      (p) => p.id == widget.currentProfileId,
+    );
+    if (index < 0) return false;
+    final row = index ~/ _columnsFor(context.size!.width);
+    final top = row * (_profileItemHeight + widget.spacing);
+    final position = _controller.position;
+    if (position.pixels <= top &&
+        top < position.pixels + position.viewportDimension) {
+      toTop();
+    } else {
+      unawaited(
+        _controller.animateTo(
+          top.clamp(position.minScrollExtent, position.maxScrollExtent),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+        ),
+      );
+    }
+    return true;
+  }
+
+  void _revealSelected() {
+    revealSelected();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ProfilesGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final ids = oldWidget.allProfiles.map((p) => p.id).toSet();
+    if (widget.allProfiles.any((p) => !ids.contains(p.id))) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(toBottom());
+      });
+    }
   }
 
   @override
@@ -644,9 +704,8 @@ class _ReorderableProfilesSheetState
         padding: const EdgeInsets.only(bottom: 32),
         child: ReorderableListView.builder(
           buildDefaultDragHandles: false,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-          ).copyWith(top: context.contentTopPadding),
+          padding: const EdgeInsets.symmetric(horizontal: 16)
+              .copyWith(top: context.contentTopPadding),
           proxyDecorator: (child, index, animation) {
             return commonProxyDecorator(_buildItem(index), index, animation);
           },
