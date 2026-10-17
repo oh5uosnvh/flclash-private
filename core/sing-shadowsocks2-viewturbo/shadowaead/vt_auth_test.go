@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,7 +26,7 @@ func (c *memoryConn) SetReadDeadline(time.Time) error  { return nil }
 func (c *memoryConn) SetWriteDeadline(time.Time) error { return nil }
 
 func TestViewTurboAuthPacket(t *testing.T) {
-	packet := vtAuthPacket()
+	packet := vtAuthPacket(vtToken)
 	if len(packet) != 60 {
 		t.Fatalf("auth length=%d", len(packet))
 	}
@@ -55,7 +56,7 @@ func TestViewTurboDialConnKeepsSaltLazy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	base := &memoryConn{}
+	base := &responseConn{reader: strings.NewReader("HTTP/1.1 200 OK\r\n\r\n")}
 	conn, err := method.DialConn(base, M.ParseSocksaddrHostPort("example.com", 443))
 	if err != nil {
 		t.Fatal(err)

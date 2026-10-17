@@ -1,7 +1,7 @@
 package shadowaead
 
 import (
-	"errors"
+	"fmt"
 	"io"
 	"math/rand"
 	"net"
@@ -10,6 +10,7 @@ import (
 
 // viewTurbo 魔改握手常量 (逆向自 ViewTurbo 1.17.0 viewturbocore)
 const vtToken = "2n6LtY0nIPV2hACRnAd7ALchE2tekEcb"
+
 var vtMagic = "#viewTurbo"
 
 var vtLetters = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -23,8 +24,14 @@ func vtRandAlpha(n int) []byte {
 }
 
 // vtIsMagic 判断密码是否带 #viewTurbo 后缀 (触发魔改, 普通 SS 节点不受影响)
-func vtIsMagic(password string) bool {
-	return strings.HasSuffix(password, vtMagic)
+func parseViewTurboPassword(password string) (string, string, bool) {
+	if strings.HasSuffix(password, "#vt") {
+		return "password", strings.TrimSuffix(password, "#vt"), true
+	}
+	if strings.HasSuffix(password, vtMagic) {
+		return "password", vtToken, true
+	}
+	return password, "", false
 }
 
 // vtPrefix HTTP obfs 前缀: 20~60 随机字母 + \r\n\r\n
@@ -34,9 +41,9 @@ func vtPrefix() []byte {
 }
 
 // vtAuthPacket token 认证包: token + ":" + 随机27字母, 发送前 buf[1] 按位取反, 恒定 60 字节
-func vtAuthPacket() []byte {
-	b := make([]byte, 0, len(vtToken)+1+27)
-	b = append(b, vtToken...)
+func vtAuthPacket(token string) []byte {
+	b := make([]byte, 0, len(token)+1+27)
+	b = append(b, token...)
 	b = append(b, ':')
 	b = append(b, vtRandAlpha(27)...)
 	if len(b) > 1 {
@@ -51,11 +58,13 @@ func vtSkipHTTPHeader(conn net.Conn) error {
 	buf1 := make([]byte, 1)
 	state := 0 // 匹配 \r\n\r\n
 	// 上限保护, 避免异常流量死循环
+	var header []byte
 	for i := 0; i < 8192; i++ {
 		if _, err := io.ReadFull(conn, buf1); err != nil {
 			return err
 		}
 		c := buf1[0]
+		header = append(header, c)
 		switch state {
 		case 0:
 			if c == '\r' {
@@ -77,6 +86,11 @@ func vtSkipHTTPHeader(conn net.Conn) error {
 			}
 		case 3:
 			if c == '\n' {
+				line := strings.SplitN(string(header), "\r\n", 2)[0]
+				fields := strings.Fields(line)
+				if len(fields) < 2 || !strings.HasPrefix(fields[0], "HTTP/") || fields[1] != "200" {
+					return fmt.Errorf("viewTurbo: authentication response %q", line)
+				}
 				return nil
 			} else if c == '\r' {
 				state = 1
@@ -85,5 +99,5 @@ func vtSkipHTTPHeader(conn net.Conn) error {
 			}
 		}
 	}
-	return errors.New("viewTurbo: HTTP response header exceeds 8192 bytes")
+	return fmt.Errorf("viewTurbo: HTTP response header exceeds 8192 bytes")
 }

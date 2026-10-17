@@ -65,6 +65,7 @@ type Method struct {
 	constructor   func(key []byte) (cipher.AEAD, error)
 	key           []byte
 	vtOn          bool
+	vtAuthToken   string
 }
 
 func NewMethod(methodName string, options C.MethodOptions) (*Method, error) {
@@ -144,11 +145,12 @@ func NewMethod(methodName string, options C.MethodOptions) (*Method, error) {
 	} else if options.Password == "" {
 		return nil, C.ErrMissingPassword
 	} else {
-		password := options.Password
-		if vtIsMagic(password) {
-			m.vtOn = true
-			password = password[:len(password)-len(vtMagic)]
+		password, token, enabled := parseViewTurboPassword(options.Password)
+		if enabled && token == "" {
+			return nil, C.ErrMissingPassword
 		}
+		m.vtOn = enabled
+		m.vtAuthToken = token
 		m.key = legacykey.Key([]byte(password), m.keySaltLength)
 	}
 	return m, nil
@@ -169,20 +171,17 @@ func (m *Method) DialConn(conn net.Conn, destination M.Socksaddr) (net.Conn, err
 		if _, err := conn.Write(vtPrefix()); err != nil {
 			return nil, err
 		}
-		if _, err := conn.Write(vtAuthPacket()); err != nil {
+		if _, err := conn.Write(vtAuthPacket(m.vtAuthToken)); err != nil {
 			return nil, err
 		}
-		// viewTurbo: 延迟握手, 与 sing-box(NekoBox) 的 DialEarlyConn 行为对齐。
-		// mihomo 对普通 ss 节点默认走 DialConn(饿汉式), 会在 auth 包之后立刻
-		// writeRequest(nil) 把 salt flush 出去, 极易与 auth 包粘进同一个 TCP 段;
-		// viewTurbo 服务端按 "读 auth 包 -> 回 HTTP 200 -> 再读 salt" 的节奏解析,
-		// 粘包会导致 salt 被当噪声丢弃 -> 服务端永远等不到 salt -> 连接挂起(全超时)。
-		// 因此这里不 eager 写 salt, 返回 writer==nil 的懒汉连接,
-		// 让 salt 随 App 首笔真实数据一起发出(clientConn.Write 会触发 writeRequest)。
+		if err := vtSkipHTTPHeader(conn); err != nil {
+			return nil, err
+		}
 		return &clientConn{
-			Conn:        conn,
-			method:      m,
-			destination: destination,
+			Conn:         conn,
+			method:       m,
+			destination:  destination,
+			vtHeaderRead: true,
 		}, nil
 	}
 	ssConn := &clientConn{
@@ -195,8 +194,12 @@ func (m *Method) DialConn(conn net.Conn, destination M.Socksaddr) (net.Conn, err
 
 func (m *Method) DialEarlyConn(conn net.Conn, destination M.Socksaddr) net.Conn {
 	if m.vtOn {
-		conn.Write(vtPrefix())
-		conn.Write(vtAuthPacket())
+		if _, err := conn.Write(vtPrefix()); err != nil {
+			return &clientConn{Conn: conn, method: m, handshakeErr: err}
+		}
+		if _, err := conn.Write(vtAuthPacket(m.vtAuthToken)); err != nil {
+			return &clientConn{Conn: conn, method: m, handshakeErr: err}
+		}
 	}
 	return &clientConn{
 		Conn:        conn,
@@ -219,6 +222,8 @@ var _ N.ExtendedConn = (*clientConn)(nil)
 type clientConn struct {
 	net.Conn
 	method          *Method
+	handshakeErr    error
+	vtHeaderRead    bool
 	destination     M.Socksaddr
 	reader          *shadowio.Reader
 	readWaitOptions N.ReadWaitOptions
@@ -227,17 +232,13 @@ type clientConn struct {
 }
 
 func (c *clientConn) writeRequest(payload []byte) error {
+	if c.handshakeErr != nil {
+		return c.handshakeErr
+	}
 	requestBuffer := buf.New()
 	requestBuffer.WriteRandom(c.method.keySaltLength)
 	key := make([]byte, c.method.keySaltLength)
 	legacykey.Kdf(c.method.key, requestBuffer.Bytes(), key)
-	if c.method.vtOn {
-		// KDF 用原始 salt 派生完毕后, 把发出的 salt 首字节按位取反
-		hb := requestBuffer.Bytes()
-		if len(hb) > 0 {
-			hb[0] = ^hb[0]
-		}
-	}
 	writeCipher, err := c.method.constructor(key)
 	if err != nil {
 		return err
@@ -266,10 +267,14 @@ func (c *clientConn) writeRequest(payload []byte) error {
 }
 
 func (c *clientConn) readResponse() error {
-	if c.method.vtOn {
+	if c.handshakeErr != nil {
+		return c.handshakeErr
+	}
+	if c.method.vtOn && !c.vtHeaderRead {
 		if err := vtSkipHTTPHeader(c.Conn); err != nil {
 			return err
 		}
+		c.vtHeaderRead = true
 	}
 	buffer := buf.NewSize(c.method.keySaltLength)
 	defer buffer.Release()
