@@ -26,13 +26,13 @@ func (c *memoryConn) SetReadDeadline(time.Time) error  { return nil }
 func (c *memoryConn) SetWriteDeadline(time.Time) error { return nil }
 
 func TestViewTurboAuthPacket(t *testing.T) {
-	packet := vtAuthPacket(vtToken)
-	if len(packet) != 60 {
+	packet := vtAuthPacket("test-token")
+	if len(packet) != len("test-token")+28 {
 		t.Fatalf("auth length=%d", len(packet))
 	}
 	packet[1] = ^packet[1]
-	if string(packet[:len(vtToken)]) != vtToken || packet[len(vtToken)] != ':' {
-		t.Fatalf("auth token mismatch: %q", packet[:len(vtToken)+1])
+	if string(packet[:len("test-token")]) != "test-token" || packet[len("test-token")] != ':' {
+		t.Fatalf("auth token mismatch: %q", packet[:len("test-token")+1])
 	}
 }
 

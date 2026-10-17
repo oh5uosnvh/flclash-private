@@ -37,9 +37,9 @@ func TestViewTurboLiveComparison(t *testing.T) {
 			}
 			defer c.Close()
 			c.SetDeadline(time.Now().Add(7 * time.Second))
-			token, kdf, flip := vtToken, raw, true
+			token, kdf, flip := raw, vtKDFPassword, true
 			if mode == "document" {
-				token, kdf, flip = raw, "password", false
+				token, kdf, flip = raw, vtKDFPassword, false
 			}
 			if mode == "neko-standard-salt" {
 				flip = false

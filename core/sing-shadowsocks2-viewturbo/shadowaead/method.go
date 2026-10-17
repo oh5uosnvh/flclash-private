@@ -146,7 +146,7 @@ func NewMethod(methodName string, options C.MethodOptions) (*Method, error) {
 		return nil, C.ErrMissingPassword
 	} else {
 		password, token, enabled := parseViewTurboPassword(options.Password)
-		if enabled && password == "" {
+		if enabled && token == "" {
 			return nil, C.ErrMissingPassword
 		}
 		m.vtOn = enabled

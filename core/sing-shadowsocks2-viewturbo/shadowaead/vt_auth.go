@@ -8,8 +8,9 @@ import (
 	"strings"
 )
 
-// viewTurbo 魔改握手常量 (逆向自 ViewTurbo 1.17.0 viewturbocore)
-const vtToken = "2n6LtY0nIPV2hACRnAd7ALchE2tekEcb"
+// ViewTurbo uses the configured token for outer authentication and a fixed
+// inner Shadowsocks password. The suffix is only the protocol switch.
+const vtKDFPassword = "password"
 
 var vtMagic = "#viewTurbo"
 
@@ -26,7 +27,8 @@ func vtRandAlpha(n int) []byte {
 func parseViewTurboPassword(password string) (string, string, bool) {
 	for _, marker := range []string{vtMagic, "#vt"} {
 		if len(password) >= len(marker) && strings.EqualFold(password[len(password)-len(marker):], marker) {
-			return password[:len(password)-len(marker)], vtToken, true
+			token := password[:len(password)-len(marker)]
+			return vtKDFPassword, token, true
 		}
 	}
 	return password, "", false
