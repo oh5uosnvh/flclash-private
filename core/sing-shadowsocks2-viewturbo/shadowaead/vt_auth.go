@@ -1,6 +1,7 @@
 package shadowaead
 
 import (
+	"fmt"
 	"io"
 	"math/rand"
 	"net"

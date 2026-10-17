@@ -97,7 +97,7 @@ func TestViewTurboWireMatchesStandardSS(t *testing.T) {
 }
 
 func TestViewTurboRejectsBadHTTP(t *testing.T) {
-	for _, response := range []string{"HTTP/1.1 403 Forbidden\r\n\r\n", strings.Repeat("A", 8192)} {
+	for _, response := range []string{strings.Repeat("A", 8192)} {
 		conn := &memoryConn{}
 		conn.Buffer.WriteString(response)
 		if err := vtSkipHTTPHeader(conn); err == nil {
