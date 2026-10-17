@@ -18,6 +18,10 @@ const (
 
 var vtMagic = "#viewTurbo"
 
+func vtMarker() string {
+	return vtProtocolMarker
+}
+
 var vtLetters = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 func vtRandAlpha(n int) []byte {
