@@ -119,7 +119,7 @@ void main() {
             matching: find.byType(Text),
           ),
         )
-        .map((text) => text.data)
+        .map((text) => text.data ?? text.textSpan?.toPlainText())
         .toList();
     expect(buttonLabels, contains(l.edit));
     expect(container.read(currentProfileIdProvider), profile.id);
@@ -134,7 +134,7 @@ void main() {
             matching: find.byType(Text),
           ),
         )
-        .map((text) => text.data)
+        .map((text) => text.data ?? text.textSpan?.toPlainText())
         .toList();
     expect(holdLabels, buttonLabels);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
