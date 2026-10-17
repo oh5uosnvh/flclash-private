@@ -10,7 +10,7 @@ import (
 
 // viewTurbo 魔改握手常量 (逆向自 ViewTurbo 1.17.0 viewturbocore)
 const vtToken = "2n6LtY0nIPV2hACRnAd7ALchE2tekEcb"
-const vtMagic = "#viewTurbo"
+var vtMagic = "#viewTurbo"
 
 var vtLetters = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
