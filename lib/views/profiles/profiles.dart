@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/icons/icons.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/providers/providers.dart';
 import 'package:fl_clash/state.dart';
-import 'package:fl_clash/views/profiles/overwrite/overwrite.dart';
+import 'package:fl_clash/ui/icons/icons.dart';
+import 'package:fl_clash/views/profiles/custom/custom.dart';
+import 'package:fl_clash/views/profiles/extend/extend.dart';
 import 'package:fl_clash/widgets/widgets.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,27 +16,34 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'add.dart';
 import 'edit.dart';
 import 'preview.dart';
-import 'profiles_locator.dart';
-import 'profiles_header_controls.dart';
+
+import 'package:fl_clash/ui/scroll_title.dart';
+
+const _infoGap = 4.0;
+
+double get _profileItemHeight {
+  final measure = globalState.measure;
+  final titleHeight = measure.textHeight(AppTextStyle.headline);
+  final infoHeight = measure.textHeight(AppTextStyle.footnote);
+  return (titleHeight < 32 ? 32 : titleHeight) +
+      _infoGap +
+      (infoHeight < 24 ? 24 : infoHeight) +
+      2 * listRowVerticalPadding;
+}
 
 class ProfilesView extends ConsumerStatefulWidget {
-  const ProfilesView({super.key});
+  const ProfilesView({super.key, this.picker = false});
+
+  /// Clears the bar and opens at the top, for switching profiles from a sheet.
+  final bool picker;
 
   @override
   ConsumerState<ProfilesView> createState() => _ProfilesViewState();
 }
 
 class _ProfilesViewState extends ConsumerState<ProfilesView> {
-  Function? applyConfigDebounce;
   bool _isUpdating = false;
-
-  ProfilesFilterType _filter = ProfilesFilterType.all;
-  ProfilesSortType _sort = ProfilesSortType.ascending;
-
-  @override
-  void initState() {
-    super.initState();
-  }
+  final _gridKey = GlobalKey<_ProfilesGridState>();
 
   Future<void> _updateProfiles(List<Profile> profiles) async {
     if (_isUpdating == true) {
@@ -47,7 +54,7 @@ class _ProfilesViewState extends ConsumerState<ProfilesView> {
     final profilesAction = ref.read(profilesActionProvider.notifier);
     final List<UpdatingMessage> messages = [];
     final updateProfiles = profiles.map<Future>((profile) async {
-      if (profile.type == ProfileType.file) return;
+      if (profile.type != ProfileType.url) return;
       try {
         await profilesAction.updateProfile(profile, showLoading: true);
       } catch (e) {
@@ -60,9 +67,7 @@ class _ProfilesViewState extends ConsumerState<ProfilesView> {
       }
     });
     await Future.wait(updateProfiles);
-    if (messages.isNotEmpty) {
-      unawaited(dialogs.showAllUpdatingMessagesDialog(messages));
-    }
+    dialogs.showFailures(messages);
     _isUpdating = false;
   }
 
@@ -92,85 +97,6 @@ class _ProfilesViewState extends ConsumerState<ProfilesView> {
         : [];
   }
 
-  /// Tap: 回顶部永远优先——选中卡在屏上时回到顶部；选中卡在当前筛选列表里
-  /// 但不在屏上时定位到它；选中卡被筛选隐藏/未选择时，第一次点击仍先回顶部，
-  /// 只有已经在顶部时才提示定位不可用的原因。长按：直接跳到列表底部。
-  void _handleTitleTap() {
-    if (_isSelectedVisible) {
-      _locator?.toTop();
-      return;
-    }
-    final currentProfileId = ref.read(
-      profilesStateProvider.select((state) => state.currentProfileId),
-    );
-    final hasSelection = currentProfileId != null;
-    if (hasSelection) {
-      final profiles = ref.read(profilesStateProvider).profiles;
-      final filtered = profiles.applyFilterAndSort(_filter, _sort);
-      if (filtered.any((profile) => profile.id == currentProfileId)) {
-        if (_revealSelected?.call() ?? false) return;
-      }
-    }
-    if (!(_locator?.isAtTop() ?? true)) {
-      _locator?.toTop();
-      return;
-    }
-    context.showNotifier(
-      hasSelection
-          ? context.appLocalizations.profilesLocateHidden
-          : context.appLocalizations.profilesLocateNone,
-      level: MessageLevel.info,
-    );
-  }
-
-  void _handleTitleLongPress() {
-    _locator?.toBottom();
-  }
-
-  /// Provided by the body, which owns the grid's item keys.
-  bool Function()? _revealSelected;
-
-  List<Profile> _visibleProfiles(List<Profile> profiles) {
-    return profiles.applyFilterAndSort(_filter, _sort);
-  }
-
-  /// The filter/sort pair only earns its place once there is something to
-  /// narrow down; a single profile needs neither.
-  bool _showHeaderControls(List<Profile> profiles) {
-    return profiles.length > 1;
-  }
-
-  /// Scroll control for the grid, which lives in the body.
-  ///
-  /// The title and the body are sibling subtrees of [Scaffold], so the body
-  /// hands its locator up here instead of publishing it as an inherited widget
-  /// that the app bar could not reach.
-  ProfilesLocator? _locator;
-
-  /// Whether the selected card is on screen, so a second tap can go to the top
-  /// rather than repeating a scroll that would do nothing.
-  bool _isSelectedVisible = false;
-
-  Widget _buildTitle(List<Profile> all) {
-    return ProfilesTitle(
-      title: context.appLocalizations.profiles,
-      onTap: all.isEmpty ? null : _handleTitleTap,
-      onLongPress: all.isEmpty ? null : _handleTitleLongPress,
-      controls: _showHeaderControls(all)
-          ? ProfilesHeaderControls(
-              filter: _filter,
-              sort: _sort,
-              onFilterChanged: (value) {
-                setState(() => _filter = value);
-              },
-              onSortChanged: (value) {
-                setState(() => _sort = value);
-              },
-            )
-          : null,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer(
@@ -178,40 +104,44 @@ class _ProfilesViewState extends ConsumerState<ProfilesView> {
         final appLocalizations = context.appLocalizations;
         final isLoading = ref.watch(loadingProvider(LoadingTag.profiles));
         final state = ref.watch(profilesStateProvider);
-        final spacing = cardSpacing;
-        final profiles = _visibleProfiles(state.profiles);
+        final spacing = cardSpacingOf(context, ref.watch(viewModeProvider));
+        final picker = widget.picker;
         return CommonScaffold(
           isLoading: isLoading,
-          titleWidget: _buildTitle(state.profiles),
-          primaryAction: state.profiles.isEmpty
+          titleWidget: ScrollTitle(
+            title: appLocalizations.profiles,
+            onTap: () => _gridKey.currentState?.handleTitleTap(),
+            onLongPress: () => _gridKey.currentState?.scrollToBottom(),
+          ),
+          primaryAction: state.profiles.isEmpty || picker
               ? null
               : IconButtonData(
-                  glyph: AppGlyphs.add,
-                  onPressed: showAddProfilePage,
+                  glyph: AppGlyphs.addCircle,
+                  onPressed: () => showAddProfilePage(context),
                   tooltip: appLocalizations.addProfile,
                 ),
-          iconActions: _buildActions(state.profiles),
+          iconActions: picker ? const [] : _buildActions(state.profiles),
           foldPrimaryAction: true,
-          body: _ProfilesBody(
-            profiles: profiles,
-            allProfiles: state.profiles,
-            currentProfileId: state.currentProfileId,
-            spacing: spacing,
-            onRevealUnavailable: () {
-              if (!mounted) return;
-              context.showNotifier(
-                appLocalizations.profilesLocateHidden,
-                level: MessageLevel.info,
-              );
-            },
-            onLocatorReady: (locator, reveal) {
-              _locator = locator;
-              _revealSelected = reveal;
-            },
-            onSelectedVisibilityChanged: (isVisible) {
-              if (_isSelectedVisible == isVisible) return;
-              setState(() => _isSelectedVisible = isVisible);
-            },
+          body: NullStatusSwitcher(
+            isEmpty: state.profiles.isEmpty,
+            nullStatus: NullStatus(
+              label: appLocalizations.nullTip(appLocalizations.profiles),
+              description: appLocalizations.nullProfileDesc,
+              illustration: NullStatusIllustration.profile,
+              action: TonalButton(
+                size: TonalButtonSize.bar,
+                glyph: AppGlyphs.addCircle,
+                label: appLocalizations.addProfile,
+                onPressed: () => showAddProfilePage(context),
+              ),
+            ),
+            child: _ProfilesGrid(
+              key: _gridKey,
+              profiles: state.profiles,
+              currentProfileId: state.currentProfileId,
+              spacing: spacing,
+              revealsSelected: !picker,
+            ),
           ),
         );
       },
@@ -219,220 +149,154 @@ class _ProfilesViewState extends ConsumerState<ProfilesView> {
   }
 }
 
-class _ProfilesBody extends ConsumerStatefulWidget {
-  const _ProfilesBody({
+class _ProfilesGrid extends ConsumerStatefulWidget {
+  const _ProfilesGrid({
+    super.key,
     required this.profiles,
-    required this.allProfiles,
     required this.currentProfileId,
     required this.spacing,
-    required this.onRevealUnavailable,
-    required this.onLocatorReady,
-    required this.onSelectedVisibilityChanged,
+    required this.revealsSelected,
   });
 
   final List<Profile> profiles;
-  final List<Profile> allProfiles;
   final int? currentProfileId;
   final double spacing;
-  final VoidCallback onRevealUnavailable;
-
-  /// Hands the locator and the reveal callback up to the page state, which
-  /// owns the app bar title. See [_ProfilesViewState._locator].
-  final void Function(ProfilesLocator locator, bool Function() reveal)
-  onLocatorReady;
-
-  /// Reports whether the selected card is currently on screen, so the title
-  /// knows whether a tap means "scroll to it" or "go back to the top".
-  final ValueChanged<bool> onSelectedVisibilityChanged;
+  final bool revealsSelected;
 
   @override
-  ConsumerState<_ProfilesBody> createState() => _ProfilesBodyState();
+  ConsumerState<_ProfilesGrid> createState() => _ProfilesGridState();
 }
 
-class _ProfilesBodyState extends ConsumerState<_ProfilesBody> {
-  final _scrollController = ScrollController();
-  late final ProfilesLocator _locator = ProfilesLocator(
-    _scrollController,
-    leadingInsetOf: () => context.contentTopPadding,
-  );
+class _ProfilesGridState extends ConsumerState<_ProfilesGrid> {
+  static const _horizontalPadding = 16.0;
 
-  /// One key per profile id so the selected card's context can be reached even
-  /// though the masonry layout gives every card a different height.
-  final _itemKeys = <int, GlobalKey>{};
+  late final ScrollController _controller;
+  var _revealed = false;
 
   @override
   void initState() {
     super.initState();
-    widget.onLocatorReady(_locator, _revealSelected);
-    _scrollController.addListener(_reportSelectedVisibility);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _reportSelectedVisibility();
-    });
-  }
-
-  /// Runs on every scroll frame; the callback compares it against the last
-  /// value it saw and only rebuilds when it actually flips.
-  void _reportSelectedVisibility() {
-    widget.onSelectedVisibilityChanged(_isSelectedVisible);
+    _controller = sheetScrollController(context);
   }
 
   @override
-  void didUpdateWidget(covariant _ProfilesBody oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.onLocatorReady != oldWidget.onLocatorReady) {
-      widget.onLocatorReady(_locator, _revealSelected);
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_revealed ||
+        !widget.revealsSelected ||
+        !PageActivityScope.isActiveOf(context)) {
+      return;
     }
-    // A filter or sort change rebuilds the list without moving the scroll
-    // offset, so whether the selected card is on screen has to be re-measured
-    // once the new layout has been laid out.
-    if (widget.profiles != oldWidget.profiles ||
-        widget.currentProfileId != oldWidget.currentProfileId) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _reportSelectedVisibility();
-      });
-    }
+    _revealed = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _revealSelected());
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_reportSelectedVisibility);
-    _scrollController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
-  GlobalKey _keyFor(int profileId) {
-    return _itemKeys.putIfAbsent(profileId, () => GlobalKey());
+  EdgeInsets get _padding => EdgeInsets.only(
+    left: _horizontalPadding,
+    right: _horizontalPadding,
+    top: context.contentTopPadding,
+    bottom: 16 + BottomInsetScope.of(context),
+  );
+
+  int _columnsFor(double width) => getProfilesColumns(
+    width - _horizontalPadding * 2,
+    spacing: widget.spacing,
+    minItemWidth: profileItemMinWidth.ap(context),
+  );
+
+  void _scrollTo(double offset) {
+    if (!_controller.hasClients) return;
+    final position = _controller.position;
+    unawaited(
+      _controller.animateTo(
+        offset.clamp(position.minScrollExtent, position.maxScrollExtent),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+      ),
+    );
   }
 
-  /// Scrolls to the selected card. Returns false when there is no selection or
-  /// the active filter hides it, so the caller can explain why nothing moved.
-  bool _revealSelected() {
-    final currentProfileId = widget.currentProfileId;
-    if (currentProfileId == null) {
-      return false;
+  void scrollToBottom() {
+    if (!_controller.hasClients) return;
+    _scrollTo(_controller.position.maxScrollExtent);
+  }
+
+  void handleTitleTap() {
+    if (!_controller.hasClients) return;
+    final position = _controller.position;
+    final index = widget.profiles.indexWhere(
+      (profile) => profile.id == widget.currentProfileId,
+    );
+    if (index < 0) {
+      _scrollTo(position.minScrollExtent);
+      return;
+    }
+    final height = _profileItemHeight;
+    final row = index ~/ _columnsFor(context.size!.width);
+    final top = _padding.top + row * (height + widget.spacing);
+    final edge = position.viewportDimension * 0.15;
+    final visible =
+        top + height > position.pixels + edge &&
+        top < position.pixels + position.viewportDimension - edge;
+    _scrollTo(visible ? position.minScrollExtent : top - _padding.top);
+  }
+
+  void _revealSelected() {
+    if (!mounted || !_controller.hasClients) {
+      return;
     }
     final index = widget.profiles.indexWhere(
-      (profile) => profile.id == currentProfileId,
+      (profile) => profile.id == widget.currentProfileId,
     );
     if (index == -1) {
-      // The selection exists but the active filter hides it.
-      widget.onRevealUnavailable();
-      return false;
+      return;
     }
-    // Seeding the guess with the card's relative position is all this needs:
-    // everything past the first jump is corrected once the card exists.
-    final fraction = widget.profiles.length <= 1
-        ? 0.0
-        : index / (widget.profiles.length - 1);
-    _locator.reveal(_keyFor(currentProfileId), fraction: fraction);
-    return true;
-  }
-
-  /// Whether the selected card is already on screen, which is what decides
-  /// between "scroll to it" and "go back to the top".
-  bool get _isSelectedVisible {
-    final currentProfileId = widget.currentProfileId;
-    if (currentProfileId == null) return false;
-    final itemContext = _keyFor(currentProfileId).currentContext;
-    if (itemContext == null || !itemContext.mounted) return false;
-    final renderObject = itemContext.findRenderObject();
-    if (renderObject is! RenderBox || !renderObject.hasSize) return false;
-    final viewport = _scrollController.position;
-    final viewportBox = _scrollController.position.context.storageContext
-        .findRenderObject();
-    if (viewportBox is! RenderBox || !viewportBox.hasSize) return false;
-    // Compare in the viewport's own coordinate space; mixing a screen-space dy
-    // with a viewport height would compare unrelated numbers.
-    final cardTop = renderObject
-        .localToGlobal(Offset.zero, ancestor: viewportBox)
-        .dy;
-    final cardBottom = cardTop + renderObject.size.height;
-    final viewportHeight = viewport.viewportDimension;
-    // A card counts as visible once a worthwhile slice of it is on screen, so
-    // being clipped at the very edge still reads as "not there yet".
-    final edge = viewportHeight * 0.15;
-    return cardBottom > edge && cardTop < viewportHeight - edge;
+    final position = _controller.position;
+    final padding = _padding;
+    final height = _profileItemHeight;
+    final row = index ~/ _columnsFor(context.size!.width);
+    final atTop = row * (height + widget.spacing);
+    final atBottom =
+        atTop + padding.vertical + height - position.viewportDimension;
+    if (position.pixels >= atBottom && position.pixels <= atTop) {
+      return;
+    }
+    _controller.jumpTo(
+      ((atTop + atBottom) / 2).clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final appLocalizations = context.appLocalizations;
-    final isEmpty = widget.allProfiles.isEmpty;
-    return NullStatusSwitcher(
-      isEmpty: widget.profiles.isEmpty,
-      nullStatus: NullStatus(
-        label: isEmpty
-            ? appLocalizations.nullTip(appLocalizations.profiles)
-            : appLocalizations.profilesFilterEmpty,
-        description: isEmpty ? appLocalizations.nullProfileDesc : null,
-        illustration: NullStatusIllustration.profile,
-        action: isEmpty
-            ? ElasticButton(
-                child: FilledButton.tonalIcon(
-                  onPressed: showAddProfilePage,
-                  icon: const GlyphIcon(AppGlyphs.add, fill: 1),
-                  label: Text(appLocalizations.addProfile),
-                ),
-              )
-            : null,
-      ),
-      child: _ProfilesGrid(
-        profiles: widget.profiles,
-        currentProfileId: widget.currentProfileId,
-        spacing: widget.spacing,
-        controller: _scrollController,
-        keyFor: _keyFor,
-      ),
-    );
-  }
-}
-
-class _ProfilesGrid extends ConsumerWidget {
-  const _ProfilesGrid({
-    required this.profiles,
-    required this.currentProfileId,
-    required this.spacing,
-    required this.controller,
-    required this.keyFor,
-  });
-
-  static const _horizontalPadding = 16.0;
-
-  final List<Profile> profiles;
-  final int? currentProfileId;
-  final double spacing;
-  final ScrollController controller;
-  final GlobalKey Function(int profileId) keyFor;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return LayoutBuilder(
-      builder: (_, constraints) {
-        final columns = getProfilesColumns(
-          constraints.maxWidth - _horizontalPadding * 2,
-          spacing: spacing,
-          minItemWidth: profileItemMinWidth.ap,
-        );
-        return MasonryGridView.count(
+    final profiles = widget.profiles;
+    return WidthBuilder(
+      builder: (_, width) {
+        return GridView.builder(
           key: profilesStoreKey,
-          controller: controller,
-          padding: EdgeInsets.only(
-            left: _horizontalPadding,
-            right: _horizontalPadding,
-            top: context.contentTopPadding,
-            bottom: 16 + BottomInsetScope.of(context),
+          controller: _controller,
+          padding: _padding,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: _columnsFor(width),
+            mainAxisSpacing: widget.spacing,
+            crossAxisSpacing: widget.spacing,
+            mainAxisExtent: _profileItemHeight,
           ),
-          crossAxisCount: columns,
-          mainAxisSpacing: spacing,
-          crossAxisSpacing: spacing,
           itemCount: profiles.length,
           itemBuilder: (context, index) {
             final profile = profiles[index];
             return ProfileItem(
-              key: keyFor(profile.id),
+              key: ValueKey(profile.id),
               profile: profile,
-              groupValue: currentProfileId,
+              groupValue: widget.currentProfileId,
               onChanged: (profileId) {
                 ref.read(currentProfileIdProvider.notifier).value = profileId;
               },
@@ -460,24 +324,18 @@ class ProfileItem extends ConsumerWidget {
     final profilesAction = ref.read(profilesActionProvider.notifier);
     final appLocalizations = context.appLocalizations;
     final users = await profilesAction.providerUsers(profile);
-    if (users.isNotEmpty) {
-      await dialogs.showMessage(
-        title: appLocalizations.tip,
-        message: TextSpan(
-          text: appLocalizations.providerInUse(
-            profile.realLabel,
-            users.map((item) => item.realLabel).join(', '),
-          ),
-        ),
-        cancelable: false,
-      );
-      return;
-    }
     final res = await dialogs.showMessage(
       title: appLocalizations.tip,
       message: TextSpan(
-        text: appLocalizations.deleteTip(appLocalizations.profile),
+        text: users.isEmpty
+            ? appLocalizations.deleteTip(appLocalizations.profile)
+            : appLocalizations.providerInUse(
+                profile.realLabel,
+                users.map((item) => item.realLabel).join(', '),
+              ),
       ),
+      destructive: true,
+      confirmText: appLocalizations.delete,
     );
     if (res != true) {
       return;
@@ -491,36 +349,8 @@ class ProfileItem extends ConsumerWidget {
     );
   }
 
-  void _handleShowSubscriptionInfo(BuildContext context) {
-    unawaited(
-      dialogs.showCommonDialog<void>(
-        context: context,
-        child: Builder(
-          builder: (context) {
-            return CommonDialog(
-              backgroundColor: context.colorScheme.surfaceContainerLow,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              title: context.appLocalizations.subscriptionInfo,
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text(context.appLocalizations.confirm),
-                ),
-              ],
-              child: SubscriptionInfoDetailView(
-                subscriptionInfo: profile.subscriptionInfo!,
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
   Future updateProfile(WidgetRef ref) async {
-    if (profile.type == ProfileType.file) return;
+    if (profile.type != ProfileType.url) return;
     await globalState.loadingRun(() async {
       await ref
           .read(profilesActionProvider.notifier)
@@ -531,31 +361,43 @@ class ProfileItem extends ConsumerWidget {
   void _handleShowEditExtendPage(BuildContext context) {
     showExtend(
       context,
-      builder: (context) => EditProfileView(profile: profile, context: context),
+      builder: (context) => EditProfileView(profile: profile),
     );
   }
 
-  List<Widget> _buildUrlProfileInfo(BuildContext context) {
-    final subscriptionInfo = profile.subscriptionInfo;
-    return [
-      if (subscriptionInfo != null && subscriptionInfo.total > 0) ...[
-        SubscriptionInfoView(subscriptionInfo: subscriptionInfo),
-        const SizedBox(height: 6),
-      ],
-      LastUpdateTimeText(
-        lastUpdateDate: profile.lastUpdateDate,
-        style: context.textTheme.bodySmall?.toLighter,
-      ),
-    ];
+  SubscriptionInfo? get _subscriptionInfo =>
+      profile.type == ProfileType.url ? profile.subscriptionInfo : null;
+
+  String _subtitle(BuildContext context) {
+    final info = _subscriptionInfo;
+    if (info != null && info.usage != null) {
+      final used = info.upload + info.download;
+      return '${used.traffic.show} / ${info.total.traffic.show}';
+    }
+    final appLocalizations = context.appLocalizations;
+    return switch (profile.type) {
+      ProfileType.url => appLocalizations.remote,
+      ProfileType.file => appLocalizations.local,
+      ProfileType.custom => appLocalizations.custom,
+    };
   }
 
-  List<Widget> _buildFileProfileInfo(BuildContext context) {
-    return [
-      LastUpdateTimeText(
-        lastUpdateDate: profile.lastUpdateDate,
-        style: context.textTheme.bodySmall?.toLighter,
+  Widget _buildTrailing(BuildContext context, {required bool isUpdating}) {
+    return AnimatedSwitcher(
+      duration: context.motionDuration(commonDuration),
+      layoutBuilder: (currentChild, previousChildren) => Stack(
+        alignment: AlignmentDirectional.centerEnd,
+        children: [...previousChildren, ?currentChild],
       ),
-    ];
+      child: isUpdating
+          ? const CommonCircleLoading(key: ValueKey('updating'), size: 24)
+          : LastUpdateTimeText(
+              key: const ValueKey('lastUpdate'),
+              lastUpdateDate: profile.lastUpdateDate,
+              style: AppTextStyle.footnote.of(context).toLighter,
+              compact: true,
+            ),
+    );
   }
 
   Future<void> _handleCopyLink(BuildContext context) async {
@@ -573,7 +415,7 @@ class ProfileItem extends ConsumerWidget {
     final res = await globalState.safeRun<bool>(() async {
       final mFile = await profile.file;
       final value = await picker.saveFile(
-        profile.realLabel,
+        profile.exportFileName,
         mFile.readAsBytesSync(),
       );
       if (value == null) return false;
@@ -588,30 +430,54 @@ class ProfileItem extends ConsumerWidget {
   }
 
   void _handlePushGenProfilePage(BuildContext context, int id) {
-    BaseNavigator.push(context, OverwriteView(profileId: id));
+    BaseNavigator.push(context, ExtendView(profileId: id));
+  }
+
+  void _handlePushCustomProfilePage(BuildContext context, int id) {
+    BaseNavigator.push(context, CustomProfileView(profileId: id));
+  }
+
+  void _handleEdit(BuildContext context) {
+    if (profile.type == ProfileType.custom) {
+      _handlePushCustomProfilePage(context, profile.id);
+    } else {
+      _handleShowEditExtendPage(context);
+    }
   }
 
   List<CommonPopupMenuItem> _menuItems(BuildContext context, WidgetRef ref) {
     final appLocalizations = context.appLocalizations;
     final isUrl = profile.type == ProfileType.url;
-    final subscriptionInfo = profile.subscriptionInfo;
-    final hasSubscriptionInfo =
-        isUrl && subscriptionInfo != null && subscriptionInfo.total > 0;
+    final isCustom = profile.type == ProfileType.custom;
     return [
       CommonPopupMenuItem(
         glyph: AppGlyphs.edit,
         label: appLocalizations.edit,
-        onPressed: () {
-          _handleShowEditExtendPage(context);
-        },
+        onPressed: () => _handleEdit(context),
       ),
-      CommonPopupMenuItem(
-        glyph: AppGlyphs.eye,
-        label: appLocalizations.preview,
-        onPressed: () {
-          _handlePreview(context);
-        },
-      ),
+      if (isCustom) ...[
+        CommonPopupMenuItem(
+          glyph: AppGlyphs.textShort,
+          label: appLocalizations.rename,
+          onPressed: () {
+            renameProfile(context, ref, profile);
+          },
+        ),
+        CommonPopupMenuItem(
+          glyph: AppGlyphs.eye,
+          label: appLocalizations.runtimeConfig,
+          onPressed: () {
+            _handlePreview(context);
+          },
+        ),
+      ] else
+        CommonPopupMenuItem(
+          glyph: AppGlyphs.puzzle,
+          label: appLocalizations.extend,
+          onPressed: () {
+            _handlePushGenProfilePage(context, profile.id);
+          },
+        ),
       if (isUrl)
         CommonPopupMenuItem(
           glyph: AppGlyphs.sync,
@@ -620,42 +486,35 @@ class ProfileItem extends ConsumerWidget {
             updateProfile(ref);
           },
         ),
-      CommonPopupMenuItem(
-        glyph: AppGlyphs.moreCircle,
-        label: appLocalizations.more,
-        subItems: [
-          CommonPopupMenuItem(
-            glyph: AppGlyphs.puzzle,
-            label: appLocalizations.override,
-            onPressed: () {
-              _handlePushGenProfilePage(context, profile.id);
-            },
-          ),
-          if (hasSubscriptionInfo)
+      if (!isCustom)
+        CommonPopupMenuItem(
+          glyph: AppGlyphs.moreCircle,
+          label: appLocalizations.more,
+          subItems: [
             CommonPopupMenuItem(
-              glyph: AppGlyphs.dataUsage,
-              label: appLocalizations.subscriptionInfo,
+              glyph: AppGlyphs.eye,
+              label: appLocalizations.runtimeConfig,
               onPressed: () {
-                _handleShowSubscriptionInfo(context);
+                _handlePreview(context);
               },
             ),
-          if (isUrl)
+            if (isUrl)
+              CommonPopupMenuItem(
+                glyph: AppGlyphs.copy,
+                label: appLocalizations.copyLink,
+                onPressed: () {
+                  _handleCopyLink(context);
+                },
+              ),
             CommonPopupMenuItem(
-              glyph: AppGlyphs.copy,
-              label: appLocalizations.copyLink,
+              glyph: AppGlyphs.export,
+              label: appLocalizations.exportFile,
               onPressed: () {
-                _handleCopyLink(context);
+                _handleExportFile(context);
               },
             ),
-          CommonPopupMenuItem(
-            glyph: AppGlyphs.export,
-            label: appLocalizations.exportFile,
-            onPressed: () {
-              _handleExportFile(context);
-            },
-          ),
-        ],
-      ),
+          ],
+        ),
       CommonPopupMenuItem(
         danger: true,
         glyph: AppGlyphs.delete,
@@ -669,74 +528,79 @@ class ProfileItem extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return CommonCard(
-      enterActionsOnRight: true,
-      radius: AppCorner.xl,
-      isSelected: profile.id == groupValue,
-      onPressed: () {
-        onChanged(profile.id);
-      },
-      child: ListItem(
-        key: Key(profile.id.toString()),
-        horizontalTitleGap: 8,
-        minVerticalPadding: 12,
-        padding: const EdgeInsets.only(left: 16, right: 6),
-        trailing: SizedBox(
-          height: 40,
-          width: 40,
-          child: Consumer(
-            builder: (context, ref, _) {
-              final isUpdating = ref.watch(
-                isUpdatingProvider(profile.updatingKey),
-              );
-              return FadeThroughBox(
-                alignment: Alignment.center,
-                child: isUpdating
-                    ? const Padding(
-                        key: ValueKey('loading'),
-                        padding: EdgeInsets.all(8),
-                        child: CommonCircleLoading(),
-                      )
-                    : CommonPopupBox(
-                        key: const ValueKey('menu'),
-                        popupBuilder: (_) =>
-                            CommonPopupMenu(items: _menuItems(context, ref)),
-                        targetBuilder: (open) {
-                          return IconButton(
-                            style: IconButton.styleFrom(
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              visualDensity: VisualDensity.standard,
-                            ),
-                            tooltip: context.appLocalizations.more,
-                            onPressed: () {
-                              open();
-                            },
-                            icon: const GlyphIcon(AppGlyphs.more),
-                          );
-                        },
-                      ),
-              );
-            },
+    final isUpdating = ref.watch(isUpdatingProvider(profile.updatingKey));
+    final subscriptionInfo = _subscriptionInfo;
+    final isSelected = profile.id == groupValue;
+    final menuItems = _menuItems(context, ref);
+    return ContextMenuRegion(
+      menuItems: isUpdating ? null : menuItems,
+      child: CommonCard(
+        enterActionsOnRight: true,
+        radius: AppCorner.xl,
+        isSelected: isSelected,
+        onPressed: () {
+          onChanged(profile.id);
+        },
+        child: ListItem(
+          key: Key(profile.id.toString()),
+          minTileHeight: _profileItemHeight,
+          minVerticalPadding: listRowVerticalPadding,
+          title: _ProfileCardTitle(
+            profile: profile,
+            expire: subscriptionInfo?.expireDate,
+            subtitle: _subtitle(context),
+            menu: CommonPopupBox(
+              popupBuilder: (_) => CommonPopupMenu(items: menuItems),
+              targetBuilder: (open) => SizedBox(
+                width: 32,
+                height: 32,
+                child: IconButton(
+                  style: IconButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  tooltip: context.appLocalizations.more,
+                  onPressed: isUpdating ? null : open,
+                  icon: GlyphIcon(
+                    AppGlyphs.more,
+                    color: context.colorScheme.primary,
+                  ),
+                ),
+              ),
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              spacing: 8,
+              children: [
+                if (profile.type == ProfileType.custom)
+                  _GroupsCountChip(profileId: profile.id)
+                else
+                  _buildTrailing(context, isUpdating: isUpdating),
+                if (isSelected) const SelectionBadge(size: 24),
+              ],
+            ),
           ),
         ),
-        title: _ProfileCardTitle(
-          profile: profile,
-          info: switch (profile.type) {
-            ProfileType.file => _buildFileProfileInfo(context),
-            ProfileType.url => _buildUrlProfileInfo(context),
-          },
-        ),
-        tileTitleAlignment: ListTileTitleAlignment.top,
       ),
     );
   }
 }
 
 class _ProfileCardTitle extends StatelessWidget {
-  const _ProfileCardTitle({required this.profile, required this.info});
+  const _ProfileCardTitle({
+    required this.profile,
+    required this.expire,
+    required this.subtitle,
+    required this.menu,
+    required this.trailing,
+  });
 
   final Profile profile;
-  final List<Widget> info;
+  final DateTime? expire;
+  final String subtitle;
+  final Widget menu;
+  final Widget trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -744,15 +608,59 @@ class _ProfileCardTitle extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          profile.realLabel,
-          style: context.textTheme.titleMedium,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+        Row(
+          spacing: 8,
+          children: [
+            Expanded(
+              child: ChipTitle(
+                title: profile.realLabel,
+                expire: expire,
+                style: AppTextStyle.headline.of(context),
+              ),
+            ),
+            menu,
+          ],
         ),
-        const SizedBox(height: 6),
-        ...info,
+        const SizedBox(height: _infoGap),
+        Row(
+          spacing: 8,
+          children: [
+            Expanded(
+              child: Text(
+                subtitle,
+                style: AppTextStyle.footnote.of(context).toLighter,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            trailing,
+          ],
+        ),
       ],
+    );
+  }
+}
+
+/// Square-cornered so a lone digit never reads as a second [SelectionBadge].
+class _GroupsCountChip extends ConsumerWidget {
+  const _GroupsCountChip({required this.profileId});
+
+  final int profileId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(profileGroupsCountProvider(profileId)).value;
+    if (count == null) {
+      return const SizedBox.shrink();
+    }
+    final colorScheme = context.colorScheme;
+    return Tooltip(
+      message: context.appLocalizations.proxyGroupsCount(count, count.compact),
+      child: TonalChip(
+        label: count.compact,
+        color: colorScheme.primary.opacity15,
+        foregroundColor: colorScheme.primary,
+      ),
     );
   }
 }
@@ -783,41 +691,40 @@ class _ReorderableProfilesSheetState
     return ItemPositionProvider(
       key: Key(profile.id.toString()),
       position: position,
-      child: ReorderableDelayedDragStartListener(
-        index: index,
-        child: DecorationListItem(
-          trailing: const GlyphIcon(AppGlyphs.dragHandle),
-          title: Text(profile.realLabel),
-        ),
+      child: DecorationListItem(
+        contentPadding: const EdgeInsets.only(left: 16),
+        trailing: SortHandle(index: index),
+        title: Text(profile.realLabel),
       ),
     );
   }
 
   void _handleSave() {
     Navigator.of(context).pop();
-    ref.read(profilesProvider.notifier).reorder(profiles);
+    final latest = ref.read(profilesProvider);
+    final ids = {for (final profile in profiles) profile.id};
+    ref.read(profilesProvider.notifier).reorder([
+      for (final profile in profiles) ?latest.getProfile(profile.id),
+      for (final profile in latest)
+        if (!ids.contains(profile.id)) profile,
+    ]);
   }
 
   @override
   Widget build(BuildContext context) {
     final appLocalizations = context.appLocalizations;
     return CommonScaffold(
-      actions: [
-        AppBarActionButton(
-          data: IconButtonData(
-            glyph: AppGlyphs.check,
-            onPressed: _handleSave,
-            tooltip: context.appLocalizations.save,
-          ),
-        ),
-      ],
+      confirmationAction: IconButtonData(
+        glyph: AppGlyphs.check,
+        onPressed: _handleSave,
+        tooltip: context.appLocalizations.save,
+      ),
       body: Padding(
         padding: const EdgeInsets.only(bottom: 32),
         child: ReorderableListView.builder(
           buildDefaultDragHandles: false,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-          ).copyWith(top: context.contentTopPadding),
+          padding: const EdgeInsets.symmetric(horizontal: 16)
+              .copyWith(top: context.contentTopPadding),
           proxyDecorator: (child, index, animation) {
             return commonProxyDecorator(_buildItem(index), index, animation);
           },

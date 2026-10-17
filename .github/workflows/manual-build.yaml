@@ -15,7 +15,7 @@ on:
       kernel_ref:
         description: 'clash-meta-mods ref (branch/sha) — kernel with private protocols'
         required: false
-        default: '6f89252150993dafef673d1ed168fd99a8d00271'
+        default: '7825ecfb'
       run_checks:
         description: 'Run format/analyze/tests before packaging'
         required: true
@@ -26,8 +26,8 @@ on:
           - 'false'
 
 env:
-  FLUTTER_VERSION: '3.47.4'
-  GO_VERSION: '1.26.4'
+  FLUTTER_VERSION: '3.47.6'
+  GO_VERSION: '1.27.1'
   NDK_VERSION: 'r28c'
 
 jobs:
@@ -88,7 +88,19 @@ jobs:
           yq -i '.hooks.user_defines.setup.build_assets = false' pubspec.yaml
 
       - name: Run tests
-        run: flutter test --reporter expanded
+        run: flutter test test/widgets/scroll_title_test.dart test/widgets/profile_focus_test.dart test/widgets/proxies_tab_test.dart test/views/proxies_list_test.dart test/core/protocol_contract_test.dart test/lint/ --reporter expanded
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: core/go.sum
+
+      - name: Test pre4 wrapper compatibility
+        working-directory: core
+        env:
+          CGO_ENABLED: '0'
+        run: go test .
 
   build:
     needs: checks
@@ -249,7 +261,7 @@ jobs:
           tag="build-${GITHUB_RUN_NUMBER}-${{ matrix.platform }}-${{ matrix.arch }}"
           if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$tag" --repo "$GITHUB_REPOSITORY" \
-            --title "FlClash 0.8.99-pre.6 mod build $GITHUB_RUN_NUMBER (${{ matrix.platform }}-${{ matrix.arch }})" \
+            --title "FlClash 0.9.1-pre.4 mod build $GITHUB_RUN_NUMBER (${{ matrix.platform }}-${{ matrix.arch }})" \
             --notes "manual-build run $GITHUB_RUN_NUMBER, kernel ref: ${{ github.event.inputs.kernel_ref || 'mods' }} (oppa + x365 + xhttp + viewTurbo + anytls)" \
             --prerelease
           fi

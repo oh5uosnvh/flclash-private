@@ -13,7 +13,7 @@ A multi-platform proxy client based on ClashMeta. Simple to use, open source and
 [![License](https://img.shields.io/github/license/chen08209/FlClash?style=flat-square)](LICENSE)
 [![Telegram](https://img.shields.io/badge/Telegram-channel-26A5E4?style=flat-square&logo=telegram&logoColor=white)](https://t.me/FlClash)
 
-[Website](https://chen08209.github.io/FlClash/) · [Download](#download) · [Changelog](CHANGELOG.md) · [Build from source](#build-from-source)
+[Website](https://chen08209.github.io/FlClash) · [Download](#download) · [Changelog](CHANGELOG.md) · [Build from source](#build-from-source)
 
 </div>
 
@@ -31,7 +31,8 @@ A multi-platform proxy client based on ClashMeta. Simple to use, open source and
 - **Profiles** from a subscription link or a file, with a built-in editor, override scripts, and custom rules,
   proxies and proxy groups.
 - **Live views** of connections, requests, DNS queries and logs.
-- **Material You design** with dynamic color, light and dark themes, and layouts that adapt from phones to desktops.
+- **Material You design with Apple-style interaction**: dynamic color, light and dark themes, continuous corners,
+  sheets that snap between heights, and layouts that adapt from phones to desktops.
 - **Backup and restore** through WebDAV or a local file.
 - **Platform touches**: a Quick Settings tile, per-app proxy and Android TV support on Android; a tray menu and
   global hotkeys on the desktop.
@@ -40,7 +41,7 @@ A multi-platform proxy client based on ClashMeta. Simple to use, open source and
 ## Download
 
 Get the latest build from [GitHub Releases](https://github.com/chen08209/FlClash/releases/latest), or open the
-[website](https://chen08209.github.io/FlClash/#download), which picks the right file for your device.
+[website](https://chen08209.github.io/FlClash#download), which picks the right file for your device.
 
 | Platform | Packages | Notes |
 | --- | --- | --- |
@@ -97,8 +98,8 @@ adb shell am start -a com.follow.clash.action.TOGGLE
 
 ## Build from source
 
-You need [Flutter](https://docs.flutter.dev/get-started/install) 3.47 (release builds use 3.47.4),
-[Go](https://go.dev/dl/) 1.26 and [Rust](https://rustup.rs/) installed through rustup. Each platform builds on its own
+You need [Flutter](https://docs.flutter.dev/get-started/install) 3.47 (release builds use 3.47.6),
+[Go](https://go.dev/dl/) 1.27 and [Rust](https://rustup.rs/) installed through rustup. Each platform builds on its own
 host, except Android, which builds anywhere.
 
 ```bash

@@ -5,6 +5,11 @@ repo="${SITE_REPOSITORY:-chen08209/FlClash}"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 out="${1:-$root/build/site}"
 
+if ! command -v node >/dev/null; then
+  echo "error: tool/render_site.mjs needs Node.js on PATH" >&2
+  exit 1
+fi
+
 rm -rf "$out"
 mkdir -p "$out"
 cp -R "$root/site/." "$out/"
@@ -36,5 +41,7 @@ if [[ -n "$tag" ]] && git -C "$root" show "$tag:CHANGELOG.md" >"$out/CHANGELOG.m
 else
   cp "$root/CHANGELOG.md" "$out/CHANGELOG.md"
 fi
+
+node "$root/tool/render_site.mjs" "$out" "${SITE_URL:-https://chen08209.github.io/FlClash}"
 
 echo "site assembled in $out"
