@@ -1,7 +1,6 @@
 package shadowaead
 
 import (
-	"fmt"
 	"io"
 	"math/rand"
 	"net"
@@ -56,13 +55,11 @@ func vtSkipHTTPHeader(conn net.Conn) error {
 	buf1 := make([]byte, 1)
 	state := 0 // 匹配 \r\n\r\n
 	// 上限保护, 避免异常流量死循环
-	var header []byte
 	for i := 0; i < 8192; i++ {
 		if _, err := io.ReadFull(conn, buf1); err != nil {
 			return err
 		}
 		c := buf1[0]
-		header = append(header, c)
 		switch state {
 		case 0:
 			if c == '\r' {
@@ -84,11 +81,6 @@ func vtSkipHTTPHeader(conn net.Conn) error {
 			}
 		case 3:
 			if c == '\n' {
-				line := strings.SplitN(string(header), "\r\n", 2)[0]
-				fields := strings.Fields(line)
-				if len(fields) < 2 || !strings.HasPrefix(fields[0], "HTTP/") || fields[1] != "200" {
-					return fmt.Errorf("viewTurbo: authentication response %q", line)
-				}
 				return nil
 			} else if c == '\r' {
 				state = 1
