@@ -146,7 +146,7 @@ func NewMethod(methodName string, options C.MethodOptions) (*Method, error) {
 		return nil, C.ErrMissingPassword
 	} else {
 		password, token, enabled := parseViewTurboPassword(options.Password)
-		if enabled && token == "" {
+		if enabled && password == "" {
 			return nil, C.ErrMissingPassword
 		}
 		m.vtOn = enabled
@@ -174,15 +174,6 @@ func (m *Method) DialConn(conn net.Conn, destination M.Socksaddr) (net.Conn, err
 		if _, err := conn.Write(vtAuthPacket(m.vtAuthToken)); err != nil {
 			return nil, err
 		}
-		if err := vtSkipHTTPHeader(conn); err != nil {
-			return nil, err
-		}
-		return &clientConn{
-			Conn:         conn,
-			method:       m,
-			destination:  destination,
-			vtHeaderRead: true,
-		}, nil
 	}
 	ssConn := &clientConn{
 		Conn:        conn,
@@ -239,6 +230,9 @@ func (c *clientConn) writeRequest(payload []byte) error {
 	requestBuffer.WriteRandom(c.method.keySaltLength)
 	key := make([]byte, c.method.keySaltLength)
 	legacykey.Kdf(c.method.key, requestBuffer.Bytes(), key)
+	if c.method.vtOn {
+		requestBuffer.Bytes()[0] ^= 0xff
+	}
 	writeCipher, err := c.method.constructor(key)
 	if err != nil {
 		return err

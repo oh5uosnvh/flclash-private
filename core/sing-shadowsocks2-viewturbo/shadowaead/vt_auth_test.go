@@ -51,7 +51,7 @@ func TestViewTurboPrefix(t *testing.T) {
 	}
 }
 
-func TestViewTurboDialConnKeepsSaltLazy(t *testing.T) {
+func TestViewTurboDialConnMatchesNekoEagerRequest(t *testing.T) {
 	method, err := NewMethod("chacha20-ietf-poly1305", C.MethodOptions{Password: "password" + vtMagic})
 	if err != nil {
 		t.Fatal(err)
@@ -61,12 +61,12 @@ func TestViewTurboDialConnKeepsSaltLazy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if base.writes != 2 {
-		t.Fatalf("handshake writes=%d, want prefix+auth only", base.writes)
+	if base.writes < 3 {
+		t.Fatalf("handshake writes=%d, want prefix+auth+SS request", base.writes)
 	}
 	early, ok := conn.(interface{ NeedHandshake() bool })
-	if !ok || !early.NeedHandshake() {
-		t.Fatal("salt was eagerly flushed")
+	if !ok || early.NeedHandshake() {
+		t.Fatal("ordinary Dial did not flush its SS request")
 	}
 }
 

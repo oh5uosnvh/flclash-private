@@ -23,8 +23,9 @@ func TestViewTurboPasswordSeparation(t *testing.T) {
 		password, token, kdf string
 		enabled              bool
 	}{
-		{"user-token#vt", "user-token", "password", true},
-		{"old-value#viewTurbo", vtToken, "password", true},
+		{"user-token#vt", vtToken, "user-token", true},
+		{"old-value#viewTurbo", vtToken, "old-value", true},
+		{"mixed#VT", vtToken, "mixed", true},
 		{"ordinary", "", "ordinary", false},
 	} {
 		m, err := NewMethod("chacha20-ietf-poly1305", C.MethodOptions{Password: tc.password})
@@ -73,7 +74,9 @@ func TestViewTurboWireMatchesStandardSS(t *testing.T) {
 		}
 		ss := wire[end+authLen:]
 		key := make([]byte, 32)
-		legacykey.Kdf(legacykey.Key([]byte("password"), 32), ss[:32], key)
+		salt := append([]byte(nil), ss[:32]...)
+		salt[0] ^= 0xff
+		legacykey.Kdf(legacykey.Key([]byte("current-user-token"), 32), salt, key)
 		aead, err := m.constructor(key)
 		if err != nil {
 			t.Fatal(err)

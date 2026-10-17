@@ -23,13 +23,11 @@ func vtRandAlpha(n int) []byte {
 	return b
 }
 
-// vtIsMagic 判断密码是否带 #viewTurbo 后缀 (触发魔改, 普通 SS 节点不受影响)
 func parseViewTurboPassword(password string) (string, string, bool) {
-	if strings.HasSuffix(password, "#vt") {
-		return "password", strings.TrimSuffix(password, "#vt"), true
-	}
-	if strings.HasSuffix(password, vtMagic) {
-		return "password", vtToken, true
+	for _, marker := range []string{vtMagic, "#vt"} {
+		if len(password) >= len(marker) && strings.EqualFold(password[len(password)-len(marker):], marker) {
+			return password[:len(password)-len(marker)], vtToken, true
+		}
 	}
 	return password, "", false
 }
