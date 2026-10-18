@@ -483,6 +483,12 @@ abstract final class AppGlyphs {
     GlyphCircle(12, 18.5, 1.4, role: GlyphRole.line, solid: true),
   ]);
 
+  static const moreBold = Glyph([
+    GlyphCircle(12, 5.5, 1.9, role: GlyphRole.line, solid: true),
+    GlyphCircle(12, 12, 1.9, role: GlyphRole.line, solid: true),
+    GlyphCircle(12, 18.5, 1.9, role: GlyphRole.line, solid: true),
+  ]);
+
   static const moreCircle = Glyph([
     GlyphCircle(12, 12, 8.8),
     GlyphCircle(7.4, 12, 1.4, role: GlyphRole.detail, solid: true),

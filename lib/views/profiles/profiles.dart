@@ -20,12 +20,13 @@ import 'preview.dart';
 import 'package:fl_clash/ui/scroll_title.dart';
 
 const _infoGap = 4.0;
+const _profileMenuExtent = 48.0;
 
 double get _profileItemHeight {
   final measure = globalState.measure;
   final titleHeight = measure.textHeight(AppTextStyle.headline);
   final infoHeight = measure.textHeight(AppTextStyle.footnote);
-  return (titleHeight < 32 ? 32 : titleHeight) +
+  return (titleHeight < _profileMenuExtent ? _profileMenuExtent : titleHeight) +
       _infoGap +
       (infoHeight < 24 ? 24 : infoHeight) +
       2 * listRowVerticalPadding;
@@ -552,8 +553,8 @@ class ProfileItem extends ConsumerWidget {
             menu: CommonPopupBox(
               popupBuilder: (_) => CommonPopupMenu(items: menuItems),
               targetBuilder: (open) => SizedBox(
-                width: 32,
-                height: 32,
+                width: _profileMenuExtent,
+                height: _profileMenuExtent,
                 child: IconButton(
                   style: IconButton.styleFrom(
                     padding: EdgeInsets.zero,
@@ -563,7 +564,8 @@ class ProfileItem extends ConsumerWidget {
                   tooltip: context.appLocalizations.more,
                   onPressed: isUpdating ? null : open,
                   icon: GlyphIcon(
-                    AppGlyphs.more,
+                    AppGlyphs.moreBold,
+                    size: 28,
                     color: context.colorScheme.primary,
                   ),
                 ),

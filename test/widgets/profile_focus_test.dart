@@ -110,7 +110,10 @@ void main() {
     expect((traffic.center.dy - time.center.dy).abs(), lessThan(2));
     expect(tester.getRect(more).center.dy, lessThan(traffic.top));
     expect(title.top, lessThan(traffic.top));
-    await tester.tap(more);
+    final hitRect = tester.getRect(more);
+    expect(hitRect.width, greaterThanOrEqualTo(48));
+    expect(hitRect.height, greaterThanOrEqualTo(48));
+    await tester.tapAt(hitRect.center + const Offset(18, 0));
     await tester.pumpAndSettle();
     final buttonLabels = tester
         .widgetList<Text>(
