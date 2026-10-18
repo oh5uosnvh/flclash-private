@@ -10,17 +10,9 @@ import (
 
 // ViewTurbo uses the configured token for outer authentication and a fixed
 // inner Shadowsocks password. The suffix is only the protocol switch.
-const (
-	vtKDFPassword = "password"
-	// Kept for binary protocol-marker verification; configured tokens are used on wire.
-	vtProtocolMarker = "2n6LtY0nIPV2"
-)
+const vtKDFPassword = "password"
 
 var vtMagic = "#viewTurbo"
-
-func vtMarker() string {
-	return vtProtocolMarker
-}
 
 var vtLetters = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
