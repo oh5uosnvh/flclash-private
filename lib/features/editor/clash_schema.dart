@@ -1009,7 +1009,15 @@ const _proxyVariants = <String, Map<String, YamlSchema>>{
     'oix_sni': _str,
     'oix_config': _str,
     'obfs-opts': YamlSchema.map({
-      'mode': YamlSchema.scalar(['http', 'tls', 'ech-tls', 'oix-ech-tls', 'shadow-tls', 'restls', 'jls']),
+      'mode': YamlSchema.scalar([
+        'http',
+        'tls',
+        'ech-tls',
+        'oix-ech-tls',
+        'shadow-tls',
+        'restls',
+        'jls',
+      ]),
       'host': _str,
       'sni': _str,
       'alpn': _str,

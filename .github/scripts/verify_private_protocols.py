@@ -12,6 +12,8 @@ MARKERS = {
     b"x365: invalid response magic": "x365",
     b"Chrome/120.0.0.0 Safari/537.36": "x365 official XHTTP User-Agent",
     b"xhttp: response magic not found": "Blackstone type=xhttp",
+    b"#oix": "OIX Snell trigger",
+    b"EXPORTER-Dler-Snell-Identity-v2": "OIX Snell ECH identity exporter v2",
     b"#viewTurbo": "ViewTurbo trigger",
     b"password": "ViewTurbo fixed inner SS password",
     b"sing-anytls/0.0.11": "Shanlian AnyTLS client/session compatibility",

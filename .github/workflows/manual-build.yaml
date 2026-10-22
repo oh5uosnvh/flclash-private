@@ -219,7 +219,7 @@ jobs:
         shell: bash
         run: |
           (cd core/Clash.Meta && go test ./transport/x365 ./adapter/outbound -run 'TestX365|TestRequestWireFormat|TestResponseValidation' -count=1)
-          (cd core/Clash.Meta && go test ./transport/anytls/... ./transport/x365 ./transport/blackstonexhttp ./transport/oppa ./adapter/outbound ./adapter ./common/convert)
+          (cd core/Clash.Meta && go test ./transport/anytls/... ./transport/x365 ./transport/blackstonexhttp ./transport/oppa ./transport/snell ./adapter/outbound ./adapter ./common/convert)
           (cd core/sing-shadowsocks2-viewturbo && go test ./...)
 
       - name: Build android (${{ matrix.arch }})
