@@ -1030,8 +1030,6 @@ const _proxyVariants = <String, Map<String, YamlSchema>>{
       'ech-config-file': _str,
       'ca-file': _str,
       'insecure': _bool,
-      'skip-cert-verify': _bool,
-      'fingerprint': _str,
       'client-fingerprint': _str,
       ..._pluginTls,
       ..._tlsLayerOpts,
