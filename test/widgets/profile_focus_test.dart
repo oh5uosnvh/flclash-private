@@ -144,6 +144,21 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('menu button shares the selection badge axis', (tester) async {
+    final profile = urlProfile('url');
+    await pumpProfiles(
+      tester,
+      profiles: [profile],
+      currentProfileId: profile.id,
+    );
+    final more = find.byTooltip(currentAppLocalizations.more);
+    final menu = tester.getRect(more);
+    final badge = tester.getRect(find.byType(SelectionBadge));
+    expect(badge.width, SelectionCheck.size);
+    expect(menu.center.dx, closeTo(badge.center.dx, 0.5));
+    expect(menu.width, greaterThanOrEqualTo(48));
+  });
+
   testWidgets('a focused profile card opens its menu', (tester) async {
     final profiles = [
       urlProfile('url 1'),

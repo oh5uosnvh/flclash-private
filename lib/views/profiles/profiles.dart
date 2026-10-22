@@ -21,6 +21,14 @@ import 'package:fl_clash/ui/scroll_title.dart';
 
 const _infoGap = 4.0;
 const _profileMenuExtent = 48.0;
+const _profileBadgeExtent = SelectionCheck.size;
+
+/// The menu button and the selection badge are both flush with the card's
+/// trailing edge, but their boxes are different widths: a [_profileMenuExtent]
+/// button would centre 12dp left of a [_profileBadgeExtent] badge. Shifting the
+/// button by half that difference puts the two on one vertical axis without
+/// touching either hit target.
+const _profileMenuAxisShift = (_profileMenuExtent - _profileBadgeExtent) / 2;
 
 double get _profileItemHeight {
   final measure = globalState.measure;
@@ -552,21 +560,24 @@ class ProfileItem extends ConsumerWidget {
             subtitle: _subtitle(context),
             menu: CommonPopupBox(
               popupBuilder: (_) => CommonPopupMenu(items: menuItems),
-              targetBuilder: (open) => SizedBox(
-                width: _profileMenuExtent,
-                height: _profileMenuExtent,
-                child: IconButton(
-                  style: IconButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  tooltip: context.appLocalizations.more,
-                  onPressed: isUpdating ? null : open,
-                  icon: GlyphIcon(
-                    AppGlyphs.moreBold,
-                    size: 28,
-                    color: context.colorScheme.primary,
+              targetBuilder: (open) => Transform.translate(
+                offset: const Offset(_profileMenuAxisShift, 0),
+                child: SizedBox(
+                  width: _profileMenuExtent,
+                  height: _profileMenuExtent,
+                  child: IconButton(
+                    style: IconButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    tooltip: context.appLocalizations.more,
+                    onPressed: isUpdating ? null : open,
+                    icon: GlyphIcon(
+                      AppGlyphs.moreBold,
+                      size: 28,
+                      color: context.colorScheme.primary,
+                    ),
                   ),
                 ),
               ),
@@ -579,7 +590,7 @@ class ProfileItem extends ConsumerWidget {
                   _GroupsCountChip(profileId: profile.id)
                 else
                   _buildTrailing(context, isUpdating: isUpdating),
-                if (isSelected) const SelectionBadge(size: 24),
+                if (isSelected) const SelectionBadge(size: _profileBadgeExtent),
               ],
             ),
           ),
