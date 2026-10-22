@@ -23,12 +23,15 @@ const _infoGap = 4.0;
 const _profileMenuExtent = 48.0;
 const _profileBadgeExtent = SelectionCheck.size;
 
-/// The menu button and the selection badge are both flush with the card's
-/// trailing edge, but their boxes are different widths: a [_profileMenuExtent]
-/// button would centre 12dp left of a [_profileBadgeExtent] badge. Shifting the
-/// button by half that difference puts the two on one vertical axis without
-/// touching either hit target.
-const _profileMenuAxisShift = (_profileMenuExtent - _profileBadgeExtent) / 2;
+/// The menu button and the selection badge end at the same trailing edge but
+/// differ in width, so a [_profileMenuExtent] button would centre 12dp left of
+/// a [_profileBadgeExtent] badge. The badge keeps the 16dp the row had before;
+/// the wider button starts 12dp earlier, which puts both centres on one axis
+/// while keeping each hit target fully inside the card.
+const _profileEdgeInset = 16.0;
+const _profileBadgeInset = _profileMenuExtent / 2 - _profileBadgeExtent / 2;
+const _profileRowInset =
+    _profileEdgeInset + _profileBadgeExtent / 2 - _profileMenuExtent / 2;
 
 double get _profileItemHeight {
   final measure = globalState.measure;
@@ -554,44 +557,46 @@ class ProfileItem extends ConsumerWidget {
           key: Key(profile.id.toString()),
           minTileHeight: _profileItemHeight,
           minVerticalPadding: listRowVerticalPadding,
+          padding: const EdgeInsets.only(left: 16, right: _profileRowInset),
           title: _ProfileCardTitle(
             profile: profile,
             expire: subscriptionInfo?.expireDate,
             subtitle: _subtitle(context),
             menu: CommonPopupBox(
               popupBuilder: (_) => CommonPopupMenu(items: menuItems),
-              targetBuilder: (open) => Transform.translate(
-                offset: const Offset(_profileMenuAxisShift, 0),
-                child: SizedBox(
-                  width: _profileMenuExtent,
-                  height: _profileMenuExtent,
-                  child: IconButton(
-                    style: IconButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    tooltip: context.appLocalizations.more,
-                    onPressed: isUpdating ? null : open,
-                    icon: GlyphIcon(
-                      AppGlyphs.moreBold,
-                      size: 28,
-                      color: context.colorScheme.primary,
-                    ),
+              targetBuilder: (open) => SizedBox(
+                width: _profileMenuExtent,
+                height: _profileMenuExtent,
+                child: IconButton(
+                  style: IconButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  tooltip: context.appLocalizations.more,
+                  onPressed: isUpdating ? null : open,
+                  icon: GlyphIcon(
+                    AppGlyphs.moreBold,
+                    size: 28,
+                    color: context.colorScheme.primary,
                   ),
                 ),
               ),
             ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              spacing: 8,
-              children: [
-                if (profile.type == ProfileType.custom)
-                  _GroupsCountChip(profileId: profile.id)
-                else
-                  _buildTrailing(context, isUpdating: isUpdating),
-                if (isSelected) const SelectionBadge(size: _profileBadgeExtent),
-              ],
+            trailing: Padding(
+              padding: const EdgeInsets.only(right: _profileBadgeInset),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                spacing: 8,
+                children: [
+                  if (profile.type == ProfileType.custom)
+                    _GroupsCountChip(profileId: profile.id)
+                  else
+                    _buildTrailing(context, isUpdating: isUpdating),
+                  if (isSelected)
+                    const SelectionBadge(size: _profileBadgeExtent),
+                ],
+              ),
             ),
           ),
         ),
