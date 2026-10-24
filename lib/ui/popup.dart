@@ -1930,8 +1930,9 @@ class _CommonPopupMenuState extends State<CommonPopupMenu>
     // Whole rows above, not centring, keep the half row a label cut at the foot.
     final visible = _maxVisibleItems;
     final alignment = (visible ~/ 2) / (visible - 0.5);
-    Scrollable.maybeOf(row)?.position
-        .ensureVisible(row.findRenderObject()!, alignment: alignment);
+    Scrollable.maybeOf(
+      row,
+    )?.position.ensureVisible(row.findRenderObject()!, alignment: alignment);
   }
 
   double _rowExtentOf(BuildContext context) =>
