@@ -15,7 +15,7 @@ on:
       kernel_ref:
         description: 'clash-meta-mods ref (branch/sha) — kernel with private protocols'
         required: false
-        default: '7825ecfb'
+        default: '3524df80b97249bf32efab111725301ce05dd1c2'
       run_checks:
         description: 'Run format/analyze/tests before packaging'
         required: true
@@ -261,7 +261,7 @@ jobs:
           tag="build-${GITHUB_RUN_NUMBER}-${{ matrix.platform }}-${{ matrix.arch }}"
           if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$tag" --repo "$GITHUB_REPOSITORY" \
-            --title "FlClash 0.9.1 stable mod build $GITHUB_RUN_NUMBER (${{ matrix.platform }}-${{ matrix.arch }})" \
+            --title "FlClash 0.9.2 stable mod build $GITHUB_RUN_NUMBER (${{ matrix.platform }}-${{ matrix.arch }})" \
             --notes "manual-build run $GITHUB_RUN_NUMBER, kernel ref: ${{ github.event.inputs.kernel_ref || 'mods' }} (oppa + x365 + xhttp + viewTurbo + anytls)" \
             --prerelease
           fi
