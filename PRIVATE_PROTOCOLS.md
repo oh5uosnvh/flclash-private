@@ -36,10 +36,10 @@ The public `oh5uosnvh/FlClash` repository is not modified and contains none of t
 ```yaml
 proxies:
   - name: x365-hk
-    type: x365
+    type: vless
     server: bgp01.example.com
     port: 443
-    uuid: 376aac10-754a-4b62-9855-6683c9adafce
+    uuid: "376aac10-754a-4b62-9855-6683c9adafce#x365"
     tls: true
     servername: updates.cdn-apple.com
     client-fingerprint: chrome
@@ -54,7 +54,7 @@ proxies:
     udp: true
 ```
 
-x365 is **not** standard VLESS. Its inner request starts with `X365`, so the independent `type: x365` must be retained.
+Only a `type: vless` UUID ending in `#x365` selects the private X365 wire handshake. The suffix is stripped before authentication; API/UI type remains VLESS. Unmarked VLESS uses the official implementation. Standalone `type: x365` is not accepted.
 
 ### Blackstone VPN xhttp
 
@@ -102,11 +102,23 @@ proxies:
     server: 203.0.113.10
     port: 15889
     cipher: chacha20-ietf-poly1305
-    password: "password#viewTurbo"
+    password: "ACCOUNT_TOKEN#vt"
     udp: true
 ```
 
-The suffix selects the private handshake and is stripped before standard Shadowsocks key derivation. Ordinary Shadowsocks nodes remain unchanged.
+Only `#vt` selects ViewTurbo: the bare token is used for outer authentication and the verified fixed password is used for inner SS encryption. Unmarked passwords (including the old `#viewTurbo` suffix) use standard SS.
+
+### FastUP
+
+Keep `type: trojan` and append `#fastup` to the password. Only this suffix enables the private key derivation, Chrome default fingerprint and automatic h2mux. The suffix is removed before derivation. `mpw` without `#fastup` never activates FastUP; the node remains standard Trojan.
+
+### Removed additions
+
+The later `type: Blackstone` dynamic-config implementation and OIX Snell sources are removed. The original MG `type: xhttp` implementation above is intentionally retained, as is official standard XHTTP transport.
+
+### Official version baseline
+
+The client contains the full official `v0.9.2` changes and the kernel is rebuilt from its exact pinned `c5062921054902b25215a6a933e72ccd714c9bfa` commit, with only the documented private extensions layered on top. Custom UI interactions are retained.
 
 ### Shanlian AnyTLS
 

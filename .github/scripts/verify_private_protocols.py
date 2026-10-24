@@ -11,8 +11,9 @@ import zipfile
 MARKERS = {
     b"x365: invalid response magic": "x365",
     b"Chrome/120.0.0.0 Safari/537.36": "x365 official XHTTP User-Agent",
-    b"xhttp: response magic not found": "Blackstone type=xhttp",
-    b"#viewTurbo": "ViewTurbo trigger",
+    b"xhttp: response magic not found": "Original MG private xhttp",
+    b"#vt": "ViewTurbo suffix switch",
+    b"#fastup": "FastUP suffix switch",
     b"password": "ViewTurbo fixed inner SS password",
     b"sing-anytls/0.0.11": "Shanlian AnyTLS client/session compatibility",
     b"oppa: peer certificate hash mismatch": "oppa outbound (NekoBoxYF oppa)",

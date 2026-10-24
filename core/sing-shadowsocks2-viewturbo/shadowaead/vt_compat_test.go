@@ -24,7 +24,7 @@ func TestViewTurboPasswordSeparation(t *testing.T) {
 		enabled              bool
 	}{
 		{"user-token#vt", "user-token", vtKDFPassword, true},
-		{"old-value#viewTurbo", "old-value", vtKDFPassword, true},
+		{"old-value#viewTurbo", "", "old-value#viewTurbo", false},
 		{"mixed#VT", "mixed", vtKDFPassword, true},
 		{"ordinary", "", "ordinary", false},
 	} {

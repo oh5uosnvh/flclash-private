@@ -12,7 +12,7 @@ import (
 // inner Shadowsocks password. The suffix is only the protocol switch.
 const vtKDFPassword = "password"
 
-var vtMagic = "#viewTurbo"
+var vtMagic = "#vt"
 
 var vtLetters = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
