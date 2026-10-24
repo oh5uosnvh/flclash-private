@@ -332,9 +332,8 @@ class CommonPopupRoute<T> extends PopupRoute<T> {
               surface: _surface,
               sourceColor: sourceColor,
               sourceImage: sourceImage,
-              surfaceColor: SurfaceLevel.floatingOf(
-                colorScheme,
-              ).colorOf(colorScheme),
+              surfaceColor: SurfaceLevel.floatingOf(colorScheme)
+                  .colorOf(colorScheme),
               shadows: menuShadows(colorScheme),
               glass: glass
                   ? (
