@@ -15,7 +15,7 @@ on:
       kernel_ref:
         description: 'clash-meta-mods ref (branch/sha) — kernel with private protocols'
         required: false
-        default: '9dec8c54b962aa3778799cb6ce1d2fd031108d07'
+        default: 'af8d59eb3c015af1a3c4c2eea64afea8d2ceee3e'
       run_checks:
         description: 'Run format/analyze/tests before packaging'
         required: true
