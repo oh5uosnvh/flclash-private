@@ -41,6 +41,9 @@ class _CoreContainerState extends ConsumerState<CoreManager>
     // the previous one hides the error and looks like the switch was lost.
     ref.listenManual(currentProfileIdProvider, (prev, next) {
       if (prev == next) return;
+      // Profile-scoped delay jobs must be invalidated before fullSetup starts
+      // applying the new profile. This manager is always mounted with Core.
+      ref.read(proxiesActionProvider.notifier).cancelDelayTests();
       runAfterFrame(() {
         unawaited(ref.read(setupActionProvider.notifier).fullSetup());
       });

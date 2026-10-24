@@ -332,9 +332,8 @@ class CommonPopupRoute<T> extends PopupRoute<T> {
               surface: _surface,
               sourceColor: sourceColor,
               sourceImage: sourceImage,
-              surfaceColor: SurfaceLevel.floatingOf(
-                colorScheme,
-              ).colorOf(colorScheme),
+              surfaceColor: SurfaceLevel.floatingOf(colorScheme)
+                  .colorOf(colorScheme),
               shadows: menuShadows(colorScheme),
               glass: glass
                   ? (
@@ -1317,6 +1316,7 @@ class CommonPopupBox extends StatefulWidget {
     required this.targetBuilder,
     required this.popupBuilder,
     this.placement = PopupPlacement.overAnchorEnd,
+    this.transparentSource = false,
   });
 
   final Widget Function(PopupOpen open) targetBuilder;
@@ -1324,6 +1324,9 @@ class CommonPopupBox extends StatefulWidget {
   final WidgetBuilder popupBuilder;
 
   final PopupPlacement placement;
+
+  /// Skips the source-card fill while a popup returns to its anchor.
+  final bool transparentSource;
 
   @override
   State<CommonPopupBox> createState() => _CommonPopupBoxState();
@@ -1490,7 +1493,9 @@ class _CommonPopupBoxState extends State<CommonPopupBox> {
       anchorOf: _sourceRect,
       placement: widget.placement,
       elevated: ElevatedSurfaceTheme.isIn(context),
-      sourceColor: _sourceColor(),
+      sourceColor: widget.transparentSource
+          ? Colors.transparent
+          : _sourceColor(),
       sourceImage: snapshot,
     );
     Navigator.of(context).push(route);
@@ -1925,9 +1930,8 @@ class _CommonPopupMenuState extends State<CommonPopupMenu>
     // Whole rows above, not centring, keep the half row a label cut at the foot.
     final visible = _maxVisibleItems;
     final alignment = (visible ~/ 2) / (visible - 0.5);
-    Scrollable.maybeOf(
-      row,
-    )?.position.ensureVisible(row.findRenderObject()!, alignment: alignment);
+    Scrollable.maybeOf(row)?.position
+        .ensureVisible(row.findRenderObject()!, alignment: alignment);
   }
 
   double _rowExtentOf(BuildContext context) =>

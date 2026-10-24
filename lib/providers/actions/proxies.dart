@@ -70,6 +70,7 @@ class ProxiesAction extends _$ProxiesAction {
     _bufferedStarts.clear();
     _bufferedFinishes.clear();
     ref.read(pendingDelayTestsProvider.notifier).clear();
+    ref.read(delayTestingGroupsProvider.notifier).clear();
   }
 
   void _scheduleDelayFlush() {

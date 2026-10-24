@@ -475,6 +475,12 @@ class DelayTestingGroups extends _$DelayTestingGroups
     }
     value = {...value}..remove(groupName);
   }
+
+  void clear() {
+    if (value.isNotEmpty) {
+      value = const {};
+    }
+  }
 }
 
 @Riverpod(keepAlive: true)

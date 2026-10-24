@@ -581,6 +581,7 @@ class ProfileItem extends ConsumerWidget {
             expire: subscriptionInfo?.expireDate,
             subtitle: _subtitle(context),
             menu: CommonPopupBox(
+              transparentSource: true,
               popupBuilder: (_) => CommonPopupMenu(items: menuItems),
               targetBuilder: (open) => SizedBox(
                 width: _profileMenuExtent,
