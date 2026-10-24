@@ -49,6 +49,14 @@ class ProxiesAction extends _$ProxiesAction {
         cancelDelayTests();
       }
     });
+    // A delay batch belongs to the active profile. Switching profiles must
+    // invalidate it before the new profile is applied; otherwise old proxy
+    // names can keep occupying the pool and keep the toolbar loading state.
+    ref.listen(currentProfileIdProvider, (previous, next) {
+      if (previous != next) {
+        cancelDelayTests();
+      }
+    });
   }
 
   void cancelDelayTests() {
