@@ -468,7 +468,7 @@ class ProfileItem extends ConsumerWidget {
   /// Opens the row's context menu out of the three-dot button, the same
   /// [CommonPopupRoute] a long press opens, anchored at the button and keeping
   /// clear of the card as [ContextMenuRegion] does.
-  void _openMenuAtButton(
+  void _openMenu(
     BuildContext buttonContext,
     BuildContext rowContext,
     WidgetRef ref,
@@ -485,26 +485,24 @@ class ProfileItem extends ConsumerWidget {
         !rowBox.hasSize) {
       return;
     }
-    final point = navigatorBox.globalToLocal(
-      buttonBox.localToGlobal(buttonBox.size.center(Offset.zero)),
+    final buttonCenter = buttonBox.localToGlobal(
+      buttonBox.size.center(Offset.zero),
     );
+    final point = navigatorBox.globalToLocal(buttonCenter);
     final rowRect = MatrixUtils.transformRect(
       rowBox.getTransformTo(navigatorBox),
       Offset.zero & rowBox.size,
     );
-    unawaited(
-      navigator.push(
-        CommonPopupRoute<void>(
-          barrierLabel: MaterialLocalizations.of(buttonContext)
-              .modalBarrierDismissLabel,
-          placement: PopupPlacement.belowPoint,
-          elevated: ElevatedSurfaceTheme.isIn(buttonContext),
-          anchorOf: () => point & Size.zero,
-          avoid: rowRect,
-          builder: (_) => CommonPopupMenu(items: _menuItems(rowContext, ref)),
-        ),
-      ),
+    final localizations = MaterialLocalizations.of(buttonContext);
+    final route = CommonPopupRoute<void>(
+      barrierLabel: localizations.modalBarrierDismissLabel,
+      placement: PopupPlacement.belowPoint,
+      elevated: ElevatedSurfaceTheme.isIn(buttonContext),
+      anchorOf: () => point & Size.zero,
+      avoid: rowRect,
+      builder: (_) => CommonPopupMenu(items: _menuItems(rowContext, ref)),
     );
+    unawaited(navigator.push(route));
   }
 
   List<CommonPopupMenuItem> _menuItems(BuildContext context, WidgetRef ref) {
@@ -624,17 +622,18 @@ class ProfileItem extends ConsumerWidget {
             expire: subscriptionInfo?.expireDate,
             subtitle: _subtitle(context),
             menu: Builder(
-              builder: (buttonContext) => IconButton(
-                tooltip: context.appLocalizations.more,
-                onPressed: isUpdating
-                    ? null
-                    : () => _openMenuAtButton(buttonContext, context, ref),
-                icon: GlyphIcon(
-                  AppGlyphs.moreBold,
-                  size: 28,
-                  color: context.colorScheme.primary,
-                ),
-              ),
+              builder: (buttonContext) {
+                void openMenu() => _openMenu(buttonContext, context, ref);
+                return IconButton(
+                  tooltip: context.appLocalizations.more,
+                  onPressed: isUpdating ? null : openMenu,
+                  icon: GlyphIcon(
+                    AppGlyphs.moreBold,
+                    size: 28,
+                    color: context.colorScheme.primary,
+                  ),
+                );
+              },
             ),
             trailing: Padding(
               padding: const EdgeInsets.only(right: _profileBadgeInset),
