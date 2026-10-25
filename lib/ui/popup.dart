@@ -1317,8 +1317,6 @@ class CommonPopupBox extends StatefulWidget {
     required this.targetBuilder,
     required this.popupBuilder,
     this.placement = PopupPlacement.overAnchorEnd,
-    this.transparentSource = false,
-    this.captureSourceImage = true,
   });
 
   final Widget Function(PopupOpen open) targetBuilder;
@@ -1326,12 +1324,6 @@ class CommonPopupBox extends StatefulWidget {
   final WidgetBuilder popupBuilder;
 
   final PopupPlacement placement;
-
-  /// Skips the source-card fill while a popup returns to its anchor.
-  final bool transparentSource;
-
-  /// Whether the popup should animate a captured anchor image back into place.
-  final bool captureSourceImage;
 
   @override
   State<CommonPopupBox> createState() => _CommonPopupBoxState();
@@ -1498,10 +1490,8 @@ class _CommonPopupBoxState extends State<CommonPopupBox> {
       anchorOf: _sourceRect,
       placement: widget.placement,
       elevated: ElevatedSurfaceTheme.isIn(context),
-      sourceColor: widget.transparentSource
-          ? Colors.transparent
-          : _sourceColor(),
-      sourceImage: widget.captureSourceImage ? snapshot : null,
+      sourceColor: _sourceColor(),
+      sourceImage: snapshot,
     );
     Navigator.of(context).push(route);
     void reveal() {
