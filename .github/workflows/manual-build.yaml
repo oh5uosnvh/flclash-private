@@ -47,8 +47,9 @@ jobs:
       - name: Verify linked UI and protocol sources
         run: |
           test -f lib/views/profiles/profiles.dart
-          test -f lib/views/profiles/profiles_header_controls.dart
-          test -f lib/views/profiles/profiles_locator.dart
+          test -f lib/providers/actions/proxies.dart
+          test -f lib/providers/app.dart
+          test -f lib/ui/popup.dart
           test -f .github/scripts/verify_private_protocols.py
           test -f core/sing-shadowsocks2-viewturbo/shadowaead/vt_auth.go
 
