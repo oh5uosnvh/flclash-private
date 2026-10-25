@@ -624,13 +624,28 @@ class ProfileItem extends ConsumerWidget {
             menu: Builder(
               builder: (buttonContext) {
                 void openMenu() => _openMenu(buttonContext, context, ref);
-                return IconButton(
-                  tooltip: context.appLocalizations.more,
-                  onPressed: isUpdating ? null : openMenu,
-                  icon: GlyphIcon(
-                    AppGlyphs.moreBold,
-                    size: 28,
-                    color: context.colorScheme.primary,
+                return SizedBox(
+                  width: _profileMenuExtent,
+                  height: _profileMenuExtent,
+                  child: IconButton(
+                    style: IconButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                      backgroundColor: Colors.transparent,
+                      disabledBackgroundColor: Colors.transparent,
+                      overlayColor: Colors.transparent,
+                      splashFactory: NoSplash.splashFactory,
+                      shadowColor: Colors.transparent,
+                      surfaceTintColor: Colors.transparent,
+                    ),
+                    tooltip: context.appLocalizations.more,
+                    onPressed: isUpdating ? null : openMenu,
+                    icon: GlyphIcon(
+                      AppGlyphs.moreBold,
+                      size: 28,
+                      color: context.colorScheme.primary,
+                    ),
                   ),
                 );
               },
