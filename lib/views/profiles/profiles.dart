@@ -10,6 +10,7 @@ import 'package:fl_clash/views/profiles/custom/custom.dart';
 import 'package:fl_clash/views/profiles/extend/extend.dart';
 import 'package:fl_clash/widgets/widgets.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -17,6 +18,7 @@ import 'add.dart';
 import 'edit.dart';
 import 'preview.dart';
 
+import 'package:fl_clash/ui/popup.dart';
 import 'package:fl_clash/ui/scroll_title.dart';
 
 const _infoGap = 4.0;
@@ -463,6 +465,48 @@ class ProfileItem extends ConsumerWidget {
     }
   }
 
+  /// Opens the row's context menu out of the three-dot button, the same
+  /// [CommonPopupRoute] a long press opens, anchored at the button and keeping
+  /// clear of the card as [ContextMenuRegion] does.
+  void _openMenuAtButton(
+    BuildContext buttonContext,
+    BuildContext rowContext,
+    WidgetRef ref,
+  ) {
+    final navigator = Navigator.maybeOf(buttonContext);
+    final navigatorBox = navigator?.context.findRenderObject();
+    final buttonBox = buttonContext.findRenderObject();
+    final rowBox = rowContext.findRenderObject();
+    if (navigator == null ||
+        navigatorBox is! RenderBox ||
+        buttonBox is! RenderBox ||
+        !buttonBox.hasSize ||
+        rowBox is! RenderBox ||
+        !rowBox.hasSize) {
+      return;
+    }
+    final point = navigatorBox.globalToLocal(
+      buttonBox.localToGlobal(buttonBox.size.center(Offset.zero)),
+    );
+    final rowRect = MatrixUtils.transformRect(
+      rowBox.getTransformTo(navigatorBox),
+      Offset.zero & rowBox.size,
+    );
+    unawaited(
+      navigator.push(
+        CommonPopupRoute<void>(
+          barrierLabel: MaterialLocalizations.of(buttonContext)
+              .modalBarrierDismissLabel,
+          placement: PopupPlacement.belowPoint,
+          elevated: ElevatedSurfaceTheme.isIn(buttonContext),
+          anchorOf: () => point & Size.zero,
+          avoid: rowRect,
+          builder: (_) => CommonPopupMenu(items: _menuItems(rowContext, ref)),
+        ),
+      ),
+    );
+  }
+
   List<CommonPopupMenuItem> _menuItems(BuildContext context, WidgetRef ref) {
     final appLocalizations = context.appLocalizations;
     final isUrl = profile.type == ProfileType.url;
@@ -561,9 +605,8 @@ class ProfileItem extends ConsumerWidget {
     final isUpdating = ref.watch(isUpdatingProvider(profile.updatingKey));
     final subscriptionInfo = _subscriptionInfo;
     final isSelected = profile.id == groupValue;
-    final menuItems = _menuItems(context, ref);
     return ContextMenuRegion(
-      menuItems: isUpdating ? null : menuItems,
+      menuItems: isUpdating ? null : _menuItems(context, ref),
       child: CommonCard(
         enterActionsOnRight: true,
         radius: AppCorner.xl,
@@ -580,30 +623,16 @@ class ProfileItem extends ConsumerWidget {
             profile: profile,
             expire: subscriptionInfo?.expireDate,
             subtitle: _subtitle(context),
-            menu: CommonPopupBox(
-              popupBuilder: (_) => CommonPopupMenu(items: menuItems),
-              targetBuilder: (open) => SizedBox(
-                width: _profileMenuExtent,
-                height: _profileMenuExtent,
-                child: IconButton(
-                  style: IconButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: VisualDensity.compact,
-                    backgroundColor: Colors.transparent,
-                    disabledBackgroundColor: Colors.transparent,
-                    overlayColor: Colors.transparent,
-                    splashFactory: NoSplash.splashFactory,
-                    shadowColor: Colors.transparent,
-                    surfaceTintColor: Colors.transparent,
-                  ),
-                  tooltip: context.appLocalizations.more,
-                  onPressed: isUpdating ? null : open,
-                  icon: GlyphIcon(
-                    AppGlyphs.moreBold,
-                    size: 28,
-                    color: context.colorScheme.primary,
-                  ),
+            menu: Builder(
+              builder: (buttonContext) => IconButton(
+                tooltip: context.appLocalizations.more,
+                onPressed: isUpdating
+                    ? null
+                    : () => _openMenuAtButton(buttonContext, context, ref),
+                icon: GlyphIcon(
+                  AppGlyphs.moreBold,
+                  size: 28,
+                  color: context.colorScheme.primary,
                 ),
               ),
             ),
