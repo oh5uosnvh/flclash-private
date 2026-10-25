@@ -6,10 +6,10 @@ on:
       platform:
         description: 'Platform to build'
         required: true
-        default: 'both'
+        default: 'all'
         type: choice
         options:
-          - both
+          - all
           - android
           - windows
       kernel_ref:
@@ -125,7 +125,7 @@ jobs:
         shell: bash
         run: |
           sel="${{ github.event.inputs.platform }}"
-          if [ "$sel" = "both" ] || [ "$sel" = "${{ matrix.platform }}" ]; then
+          if [ "$sel" = "all" ] || [ "$sel" = "${{ matrix.platform }}" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
@@ -261,8 +261,8 @@ jobs:
           tag="build-${GITHUB_RUN_NUMBER}-${{ matrix.platform }}-${{ matrix.arch }}"
           if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$tag" --repo "$GITHUB_REPOSITORY" \
-            --title "FlClash 0.9.2 stable mod build $GITHUB_RUN_NUMBER (${{ matrix.platform }}-${{ matrix.arch }})" \
-            --notes "manual-build run $GITHUB_RUN_NUMBER, kernel ref: ${{ github.event.inputs.kernel_ref || 'mods' }} (oppa + x365 + xhttp + viewTurbo + anytls)" \
+            --title "FlClash maintained build $GITHUB_RUN_NUMBER (${{ matrix.platform }}-${{ matrix.arch }})" \
+            --notes "Automated build $GITHUB_RUN_NUMBER; protocols: oppa, x365, xhttp, viewTurbo, anytls" \
             --prerelease
           fi
           gh release upload "$tag" ./dist/* --repo "$GITHUB_REPOSITORY" --clobber

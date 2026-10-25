@@ -1,14 +1,11 @@
 # FlClash private-protocol build
 
-This private repository links four verified protocol extensions into the same Android arm64 and Windows amd64 core.
+This repository links the maintained private protocol extensions into Android and Windows builds.
 
-## Source linkage (v2 — modular kernel)
+## Source linkage
 
-The Mihomo kernel is NO LONGER vendored. It lives in its own private repo
-**`oh5uosnvh/clash-meta-mods`** (branch `mods`, based on chen08209/Clash.Meta
-`0f7f05ad` = FlClash 0.8.96's pinned kernel, +2 additive commits: f87a52d2
-x365+xhttp, a7ee1b1a shanlian anytls). CI clones it at build time
-(`kernel_ref` input, default `mods`) into `core/Clash.Meta`.
+The kernel is maintained in **`oh5uosnvh/clash-meta-mods`** on branch `mods`.
+CI clones the selected kernel reference into `core/Clash.Meta` at build time.
 
 | Feature | Source location | Integration |
 |---|---|---|
@@ -19,13 +16,9 @@ x365+xhttp, a7ee1b1a shanlian anytls). CI clones it at build time
 
 ### Kernel update SOP
 
-Upstream (chen08209/Clash.Meta) releases a new FlClash kernel:
-
-1. Clone clash-meta-mods locally, `git fetch upstream && git rebase <new-ref> mods`
-   — conflicts can only appear in `adapter/parser.go` / `constant/adapters.go`
-   (a ~10-line registration block); everything else is additive new files.
-2. Push the rebased `mods` branch.
-3. Dispatch this workflow — `kernel_ref` stays `mods`.
+1. Update the maintained kernel branch.
+2. Run the kernel and protocol test suites.
+3. Dispatch the build workflow with the desired kernel reference.
 
 The public `oh5uosnvh/FlClash` repository is not modified and contains none of these implementation details.
 
@@ -116,9 +109,9 @@ Keep `type: trojan` and append `#fastup` to the password. Only this suffix enabl
 
 The later `type: Blackstone` dynamic-config implementation and OIX Snell sources are removed. The original MG `type: xhttp` implementation above is intentionally retained, as is official standard XHTTP transport.
 
-### Official version baseline
+### Maintained client
 
-The client contains the full official `v0.9.2` changes and the kernel is rebuilt from its exact pinned `c5062921054902b25215a6a933e72ccd714c9bfa` commit, with only the documented private extensions layered on top. Custom UI interactions are retained.
+The client includes the maintained UI integration and documented private extensions. Custom UI interactions are retained.
 
 ### Shanlian AnyTLS
 
