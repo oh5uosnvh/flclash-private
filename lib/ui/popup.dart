@@ -1290,12 +1290,14 @@ class _PopupLayoutDelegate extends SingleChildLayoutDelegate {
 /// unfolds, so the card neither slides nor flips around what it avoids.
 class _PopupPin {
   _PopupLayoutDelegate? _placement;
-  Size _size = Size.zero;
   Offset _topRight = Offset.zero;
 
+  /// Keep the parent menu anchored while a submenu changes the total popup
+  /// size. Repositioning from the new child height makes the whole menu jump
+  /// upward when the submenu opens.
   Offset? topRightFor(_PopupLayoutDelegate placement, Size size) {
     final held = _placement;
-    if (held == null || size != _size || !held._placesLike(placement)) {
+    if (held == null || !held._placesLike(placement)) {
       return null;
     }
     return _topRight;
@@ -1303,7 +1305,6 @@ class _PopupPin {
 
   void hold(_PopupLayoutDelegate placement, Size size, Offset topRight) {
     _placement = placement;
-    _size = size;
     _topRight = topRight;
   }
 }
