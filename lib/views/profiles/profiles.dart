@@ -582,6 +582,7 @@ class ProfileItem extends ConsumerWidget {
             subtitle: _subtitle(context),
             menu: CommonPopupBox(
               transparentSource: true,
+              captureSourceImage: false,
               popupBuilder: (_) => CommonPopupMenu(items: menuItems),
               targetBuilder: (open) => SizedBox(
                 width: _profileMenuExtent,
