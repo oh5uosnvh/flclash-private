@@ -796,6 +796,7 @@ void main() {
       expect(container.read(pendingDelayTestsProvider), isEmpty);
       expect(container.read(delayDataSourceProvider)[_testUrl]?['HK-01'], 20);
       await run;
+      await tester.pump(const Duration(milliseconds: 1));
     });
 
     testWidgets('queued nodes retain a full budget after hung probes', (
@@ -880,6 +881,7 @@ void main() {
       expect(container.read(delayDataSourceProvider)[_testUrl]?['HK-01'], 15);
       expect(container.read(sortNumProvider), before + 1);
       await newRun;
+      await tester.pump(const Duration(milliseconds: 1));
     });
 
     testWidgets('profile switch still cancels its pending group', (
@@ -905,6 +907,7 @@ void main() {
       await tester.pump();
       expect(container.read(delayDataSourceProvider), isEmpty);
       await run;
+      await tester.pump(const Duration(milliseconds: 1));
     });
 
     testWidgets('a hung group does not hold another group loading', (
