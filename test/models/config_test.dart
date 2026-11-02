@@ -129,6 +129,8 @@ void main() {
       expect(restored.autoRun, false);
       expect(restored.openLogs, false);
       expect(restored.closeConnections, true);
+      expect(restored.delayTestTimeout, 3000);
+      expect(AppSettingProps.fromJson({}).delayTestTimeout, 3000);
       expect(restored.tabAnimation, TabAnimation.fade);
       expect(restored.autoCheckUpdate, true);
       expect(restored.sidebarExpanded, true);

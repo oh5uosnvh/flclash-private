@@ -91,13 +91,14 @@ class Migration {
 
   /// One-off setting changes for upgrades, apart from [currentVersion], which
   /// backups carry and an older app refuses when it is newer than its own.
-  static const upgradeVersion = 4;
+  static const upgradeVersion = 5;
 
   static const Map<int, Config Function(Config config)> _upgrades = {
     1: _resetThemeColors,
     2: _keepGlassLook,
     3: _followSystemColors,
     4: _turnOffSidebarBlur,
+    5: _shortenDelayTestTimeout,
   };
 
   Future<Config> run() async {
@@ -237,6 +238,20 @@ Config _followSystemColors(Config config) {
 // Releases stored sidebar blur on while its switch stayed hidden.
 Config _turnOffSidebarBlur(Config config) =>
     config.copyWith(themeProps: config.themeProps.copyWith(sidebarBlur: false));
+
+// Keep explicitly shorter probes; update the longer saved budget once.
+Config _shortenDelayTestTimeout(Config config) {
+  final setting = config.appSettingProps;
+  if (setting.delayTestTimeout > 0 &&
+      setting.delayTestTimeout <= defaultDelayTestTimeout) {
+    return config;
+  }
+  return config.copyWith(
+    appSettingProps: setting.copyWith(
+      delayTestTimeout: defaultDelayTestTimeout,
+    ),
+  );
+}
 
 bool _isV0(Map<String, Object?>? configMap) =>
     configMap?['proxiesStyle'] != null;

@@ -12,7 +12,7 @@ import (
 const (
 	delayTestConcurrency    = 50
 	defaultTestURL          = "https://www.gstatic.com/generate_204"
-	defaultDelayTestTimeout = 5 * time.Second
+	defaultDelayTestTimeout = 3 * time.Second
 )
 
 var (

@@ -598,7 +598,9 @@ abstract class CoreHandlerInterface with CoreInterface {
     final data = await _invokeMethod<Map<String, dynamic>>(
       method: CoreMethod.asyncTestDelay,
       arguments: delayParams,
-      timeout: delayTestGuardDuration,
+      // The job owns the probe deadline. A small transport grace lets the
+      // Core's timeout reply settle without holding a pool slot for it.
+      timeout: timeout + const Duration(milliseconds: 250),
     );
     return data == null ? null : Delay.fromJson(data);
   }

@@ -307,6 +307,53 @@ void main() {
         expect(await upgrade(4), isTrue);
       });
 
+      test(
+        'shortens saved delay budgets once and keeps other settings',
+        () async {
+          for (final timeout in [5000, 8000, 0]) {
+            final configMap = _createConfigMap()
+              ..['appSettingProps'] = {
+                'delayTestTimeout': timeout,
+                'openLogs': true,
+              };
+            final store = _FakeMigrationStore(
+              configMap: configMap,
+              version: Migration.currentVersion,
+              upgradeVersion: 4,
+            );
+
+            final config = await Migration(store: store).run();
+
+            expect(config.appSettingProps.delayTestTimeout, 3000);
+            expect(config.appSettingProps.openLogs, isTrue);
+            expect(store.savedConfig, config);
+            final laterMap = jsonDecode(jsonEncode(config));
+            laterMap['appSettingProps']['delayTestTimeout'] = 5000;
+            final later = _FakeMigrationStore(
+              configMap: laterMap,
+              version: Migration.currentVersion,
+              upgradeVersion: store.upgradeVersion,
+            );
+            final restored = await Migration(store: later).run();
+            expect(restored.appSettingProps.delayTestTimeout, 5000);
+          }
+        },
+      );
+
+      test('keeps a shorter saved manual delay budget', () async {
+        for (final timeout in [500, 1000, 2000, 3000]) {
+          final configMap = _createConfigMap()
+            ..['appSettingProps'] = {'delayTestTimeout': timeout};
+          final store = _FakeMigrationStore(
+            configMap: configMap,
+            version: Migration.currentVersion,
+            upgradeVersion: 4,
+          );
+          final config = await Migration(store: store).run();
+          expect(config.appSettingProps.delayTestTimeout, timeout);
+        }
+      });
+
       test('a new install only records it', () async {
         final store = _FakeMigrationStore(
           configMap: null,

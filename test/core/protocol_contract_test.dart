@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 class _RecordingCoreHandler extends CoreHandlerInterface {
   final Map<CoreMethod, Object?> calls = {};
+  final Map<CoreMethod, Duration?> timeouts = {};
 
   @override
   Future<CoreLifecycleResult> start() async => const CoreLifecycleResult(
@@ -34,6 +35,7 @@ class _RecordingCoreHandler extends CoreHandlerInterface {
     Duration? timeout,
   }) async {
     calls[method] = arguments;
+    timeouts[method] = timeout;
     final result = switch (method) {
       CoreMethod.initClash => true as T,
       CoreMethod.getTraffic ||
@@ -388,6 +390,23 @@ void main() {
     ]);
 
     expect(events.map((event) => event.data), ['provider-a', 'provider-b']);
+  });
+
+  test('manual delay transport guard follows the probe budget', () async {
+    final handler = _RecordingCoreHandler();
+    const budget = Duration(seconds: 3);
+
+    await handler.asyncTestDelay('https://example.com', 'DIRECT', budget);
+
+    expect(handler.calls[CoreMethod.asyncTestDelay], {
+      'proxy-name': 'DIRECT',
+      'timeout': 3000,
+      'test-url': 'https://example.com',
+    });
+    expect(
+      handler.timeouts[CoreMethod.asyncTestDelay],
+      const Duration(milliseconds: 3250),
+    );
   });
 
   test('core interface converts structured method results', () async {

@@ -48,14 +48,11 @@ double systemTextScaleOf(BuildContext context) {
   return WidgetsBinding.instance.platformDispatcher.textScaleFactor;
 }
 
-/// How long, in milliseconds, the Core may spend on one manual delay test. It
-/// spends this twice in the worst case - once queueing for a slot, once on the
-/// probe itself - so the guard below has to outlast twice the longest option.
-const delayTestTimeoutOptions = [500, 1000, 2000, 5000, 8000];
+/// Budget for one dispatched manual delay test; waiting in the Dart pool is
+/// shown separately and does not consume the next node's probe budget.
+const delayTestTimeoutOptions = [500, 1000, 2000, 3000, 5000, 8000];
 
-const defaultDelayTestTimeout = 8000;
-
-const delayTestGuardDuration = Duration(seconds: 30);
+const defaultDelayTestTimeout = 3000;
 
 const delayTimedOutValue = -1;
 

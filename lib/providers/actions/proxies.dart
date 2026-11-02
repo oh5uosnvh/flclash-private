@@ -20,7 +20,18 @@ class _DelayTestJob {
   final Set<String> held;
   final Duration timeout;
   final Set<String> startedOnDispatch = {};
-  bool cancelled = false;
+  final Completer<Delay?> _cancelled = Completer<Delay?>();
+
+  bool get cancelled => _cancelled.isCompleted;
+
+  void cancel() {
+    if (!cancelled) {
+      _cancelled.complete(null);
+    }
+  }
+
+  Future<Delay?> wait(Future<Delay?> result) =>
+      Future.any([result, _cancelled.future]).timeout(timeout);
 }
 
 @Riverpod(keepAlive: true)
@@ -30,6 +41,8 @@ class ProxiesAction extends _$ProxiesAction {
   final TaskPool _delayTestPool = TaskPool(maxConcurrentDelayTests);
 
   final List<_DelayTestJob> _delayTestJobs = [];
+
+  int _delayTestGeneration = 0;
 
   final List<Delay> _bufferedDelays = [];
 
@@ -60,8 +73,9 @@ class ProxiesAction extends _$ProxiesAction {
   }
 
   void cancelDelayTests() {
+    _delayTestGeneration++;
     for (final job in _delayTestJobs) {
-      job.cancelled = true;
+      job.cancel();
       job.held.clear();
     }
     _delayFlushTimer?.cancel();
@@ -331,15 +345,21 @@ class ProxiesAction extends _$ProxiesAction {
   }
 
   Future<void> delayTest(List<Proxy> proxies, [String? testUrl]) async {
+    final generation = _delayTestGeneration;
     await _runDelayTests([(proxies: proxies, testUrl: testUrl)]);
-    ref.read(sortNumProvider.notifier).add();
+    if (generation == _delayTestGeneration) {
+      ref.read(sortNumProvider.notifier).add();
+    }
   }
 
   Future<void> delayTestGroups(List<Group> groups) async {
+    final generation = _delayTestGeneration;
     await _runDelayTests([
       for (final group in groups) (proxies: group.all, testUrl: group.testUrl),
     ]);
-    ref.read(sortNumProvider.notifier).add();
+    if (generation == _delayTestGeneration) {
+      ref.read(sortNumProvider.notifier).add();
+    }
   }
 
   Future<void> delayTestPageGroup(
@@ -354,6 +374,7 @@ class ProxiesAction extends _$ProxiesAction {
     if (!testing.start(groupName)) {
       return;
     }
+    final generation = _delayTestGeneration;
     try {
       final query = SearchQuery(
         matchSearch ? ref.read(queryProvider(QueryTag.proxies)) : '',
@@ -363,7 +384,9 @@ class ProxiesAction extends _$ProxiesAction {
         group.testUrl,
       );
     } finally {
-      testing.stop(groupName);
+      if (generation == _delayTestGeneration) {
+        testing.stop(groupName);
+      }
     }
   }
 
@@ -449,17 +472,25 @@ class ProxiesAction extends _$ProxiesAction {
       _scheduleDelayFlush();
     }
     try {
-      final delay = await _core.getDelay(
-        target.testUrl,
-        target.proxyName,
-        job.timeout,
+      final delay = await job.wait(
+        _core.getDelay(target.testUrl, target.proxyName, job.timeout),
       );
       if (delay != null && !job.cancelled) {
         setDelay(delay);
       }
+    } on TimeoutException {
+      if (!job.cancelled) {
+        setDelay(
+          Delay(
+            name: target.proxyName,
+            url: target.testUrl,
+            value: delayTimedOutValue,
+          ),
+        );
+      }
     } catch (error) {
       if (error is CoreMethodException && error.isCoreUnavailable) {
-        job.cancelled = true;
+        job.cancel();
       }
       commonPrint.log(
         'Delay test failed for ${target.proxyName}: $error',

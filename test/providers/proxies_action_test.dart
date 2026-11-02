@@ -745,6 +745,200 @@ void main() {
       expect(container.read(pendingDelayTestsProvider), isEmpty);
     });
 
+    testWidgets('hung node settles its group at the probe deadline', (
+      tester,
+    ) async {
+      final answer = Completer<Delay?>();
+      when(
+        () => core.asyncTestDelay(_testUrl, 'HK-01', any()),
+      ).thenAnswer((_) => answer.future);
+      final container = _delayContainer(buildContainer);
+      container.read(groupsProvider.notifier).value = [
+        _group('Proxy', const [_proxy]),
+      ];
+      var finished = false;
+      final run = actionOf(container).delayTestPageGroup('Proxy');
+      unawaited(run.then((_) => finished = true));
+
+      await tester.pump(const Duration(milliseconds: 2999));
+      expect(finished, isFalse);
+      expect(container.read(delayTestingGroupsProvider), {'Proxy'});
+      await tester.pump(const Duration(milliseconds: 1));
+
+      expect(finished, isTrue);
+      expect(container.read(delayTestingGroupsProvider), isEmpty);
+      expect(container.read(pendingDelayTestsProvider), isEmpty);
+      expect(container.read(delayDataSourceProvider)[_testUrl]?['HK-01'], -1);
+      answer.complete(const Delay(name: 'HK-01', url: _testUrl, value: 42));
+      await tester.pump();
+      expect(container.read(delayDataSourceProvider)[_testUrl]?['HK-01'], -1);
+      await run;
+    });
+
+    testWidgets('a finished group stops without an extra grace wait', (
+      tester,
+    ) async {
+      final answer = Completer<Delay?>();
+      when(
+        () => core.asyncTestDelay(_testUrl, 'HK-01', any()),
+      ).thenAnswer((_) => answer.future);
+      final container = _delayContainer(buildContainer);
+      container.read(groupsProvider.notifier).value = [
+        _group('Proxy', const [_proxy]),
+      ];
+      final run = actionOf(container).delayTestPageGroup('Proxy');
+      expect(container.read(delayTestingGroupsProvider), {'Proxy'});
+
+      answer.complete(const Delay(name: 'HK-01', url: _testUrl, value: 20));
+      await tester.pump();
+
+      expect(container.read(delayTestingGroupsProvider), isEmpty);
+      expect(container.read(pendingDelayTestsProvider), isEmpty);
+      expect(container.read(delayDataSourceProvider)[_testUrl]?['HK-01'], 20);
+      await run;
+    });
+
+    testWidgets('queued nodes retain a full budget after hung probes', (
+      tester,
+    ) async {
+      var calls = 0;
+      when(() => core.asyncTestDelay(_testUrl, any(), any())).thenAnswer((_) {
+        calls++;
+        return Completer<Delay?>().future;
+      });
+      final container = _delayContainer(buildContainer);
+      final proxies = List.generate(
+        maxConcurrentDelayTests + 1,
+        (index) => Proxy(name: 'HK-$index', type: 'ss'),
+      );
+      final run = actionOf(container).delayTest(proxies);
+      var finished = false;
+      unawaited(run.then((_) => finished = true));
+      expect(calls, maxConcurrentDelayTests);
+
+      await tester.pump(const Duration(seconds: 3));
+      expect(calls, proxies.length);
+      expect(finished, isFalse);
+      await tester.pump(const Duration(milliseconds: 2999));
+      expect(finished, isFalse);
+      await tester.pump(const Duration(milliseconds: 1));
+
+      expect(finished, isTrue);
+      expect(container.read(pendingDelayTestsProvider), isEmpty);
+      expect(
+        container.read(delayDataSourceProvider)[_testUrl]?.values,
+        everyElement(delayTimedOutValue),
+      );
+      await run;
+    });
+
+    testWidgets('cancel releases all slots and keeps a new group marked', (
+      tester,
+    ) async {
+      final oldAnswer = Completer<Delay?>();
+      final newAnswer = Completer<Delay?>();
+      var calls = 0;
+      when(() => core.asyncTestDelay(_testUrl, any(), any())).thenAnswer((_) {
+        calls++;
+        return calls <= maxConcurrentDelayTests
+            ? oldAnswer.future
+            : newAnswer.future;
+      });
+      final container = _delayContainer(buildContainer);
+      final proxies = List.generate(
+        maxConcurrentDelayTests + 1,
+        (index) => Proxy(name: 'HK-$index', type: 'ss'),
+      );
+      container.read(groupsProvider.notifier).value = [
+        _group('Proxy', proxies),
+      ];
+      final action = actionOf(container);
+      final before = container.read(sortNumProvider);
+      final oldRun = action.delayTestPageGroup('Proxy');
+      expect(calls, maxConcurrentDelayTests);
+      action.cancelDelayTests();
+      expect(container.read(delayTestingGroupsProvider), isEmpty);
+      container.read(groupsProvider.notifier).value = [
+        _group('Proxy', const [_proxy]),
+      ];
+      final newRun = action.delayTestPageGroup('Proxy');
+      await tester.pump();
+
+      expect(calls, maxConcurrentDelayTests + 1);
+      expect(container.read(delayTestingGroupsProvider), {'Proxy'});
+      expect(container.read(pendingDelayTestsProvider), hasLength(1));
+      expect(container.read(sortNumProvider), before);
+      await oldRun;
+      oldAnswer.completeError(StateError('late old failure'));
+      await tester.pump();
+      expect(container.read(delayTestingGroupsProvider), {'Proxy'});
+      newAnswer.complete(const Delay(name: 'HK-01', url: _testUrl, value: 15));
+      await tester.pump();
+
+      expect(container.read(delayTestingGroupsProvider), isEmpty);
+      expect(container.read(pendingDelayTestsProvider), isEmpty);
+      expect(container.read(delayDataSourceProvider)[_testUrl]?['HK-01'], 15);
+      expect(container.read(sortNumProvider), before + 1);
+      await newRun;
+    });
+
+    testWidgets('profile switch still cancels its pending group', (
+      tester,
+    ) async {
+      final answer = Completer<Delay?>();
+      when(
+        () => core.asyncTestDelay(_testUrl, any(), any()),
+      ).thenAnswer((_) => answer.future);
+      final container = _delayContainer(buildContainer);
+      container.read(groupsProvider.notifier).value = [
+        _group('Proxy', const [_proxy]),
+      ];
+      final run = actionOf(container).delayTestPageGroup('Proxy');
+      expect(container.read(delayTestingGroupsProvider), {'Proxy'});
+
+      container.read(currentProfileIdProvider.notifier).value = 2;
+      await tester.pump();
+
+      expect(container.read(delayTestingGroupsProvider), isEmpty);
+      expect(container.read(pendingDelayTestsProvider), isEmpty);
+      answer.complete(const Delay(name: 'HK-01', url: _testUrl, value: 99));
+      await tester.pump();
+      expect(container.read(delayDataSourceProvider), isEmpty);
+      await run;
+    });
+
+    testWidgets('a hung group does not hold another group loading', (
+      tester,
+    ) async {
+      final slow = Completer<Delay?>();
+      when(
+        () => core.asyncTestDelay(_testUrl, 'slow', any()),
+      ).thenAnswer((_) => slow.future);
+      when(() => core.asyncTestDelay(_testUrl, 'HK-01', any())).thenAnswer((
+        _,
+      ) async {
+        return const Delay(name: 'HK-01', url: _testUrl, value: 12);
+      });
+      final container = _delayContainer(buildContainer);
+      container.read(groupsProvider.notifier).value = [
+        _group('Slow', const [Proxy(name: 'slow', type: 'Snell')]),
+        _group('Fast', const [_proxy]),
+      ];
+      final action = actionOf(container);
+      final slowRun = action.delayTestPageGroup('Slow');
+      final fastRun = action.delayTestPageGroup('Fast');
+      await tester.pump();
+
+      expect(container.read(delayTestingGroupsProvider), {'Slow'});
+      await fastRun;
+      await tester.pump(const Duration(seconds: 3));
+      expect(container.read(delayTestingGroupsProvider), isEmpty);
+      slow.completeError(StateError('late slow failure'));
+      await tester.pump();
+      expect(container.read(delayDataSourceProvider)[_testUrl]?['slow'], -1);
+      await slowRun;
+    });
+
     test('drops every spinner when the Core goes away mid-run', () async {
       final release = Completer<Delay?>();
       when(

@@ -15,7 +15,7 @@ on:
       kernel_ref:
         description: 'clash-meta-mods ref (branch/sha) — kernel with private protocols'
         required: false
-        default: 'af8d59eb3c015af1a3c4c2eea64afea8d2ceee3e'
+        default: '0ba701f195c560259c9ac515edb0cc5096380400'
       run_checks:
         description: 'Run format/analyze/tests before packaging'
         required: true
@@ -97,7 +97,22 @@ jobs:
           yq -i '.hooks.user_defines.setup.build_assets = false' pubspec.yaml
 
       - name: Run tests
-        run: flutter test test/widgets/scroll_title_test.dart test/widgets/profile_focus_test.dart test/widgets/proxies_tab_test.dart test/views/proxies_list_test.dart test/core/protocol_contract_test.dart test/pages/scan_test.dart test/views/added_rules_test.dart test/widgets/input_test.dart test/lint/ --reporter expanded
+        run: >-
+          flutter test
+          test/widgets/scroll_title_test.dart
+          test/widgets/profile_focus_test.dart
+          test/widgets/proxies_tab_test.dart
+          test/views/proxies_list_test.dart
+          test/providers/proxies_action_test.dart
+          test/common/task_pool_test.dart
+          test/common/migration_test.dart
+          test/models/config_test.dart
+          test/core/protocol_contract_test.dart
+          test/pages/scan_test.dart
+          test/views/added_rules_test.dart
+          test/widgets/input_test.dart
+          test/lint/
+          --reporter expanded
 
       - name: Setup Go
         uses: actions/setup-go@v5
