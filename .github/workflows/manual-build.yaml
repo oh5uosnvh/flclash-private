@@ -15,7 +15,7 @@ on:
       kernel_ref:
         description: 'clash-meta-mods ref (branch/sha) — kernel with private protocols'
         required: false
-        default: '0ba701f195c560259c9ac515edb0cc5096380400'
+        default: 'c94566bb1f0607e8abc82177198dda7f95bba645'
       run_checks:
         description: 'Run format/analyze/tests before packaging'
         required: true
@@ -125,6 +125,12 @@ jobs:
         env:
           CGO_ENABLED: '0'
         run: go test .
+
+      - name: Test Snell deadline and close regressions
+        working-directory: core/Clash.Meta
+        run: |
+          go test ./adapter ./adapter/outbound -run 'TestURLTest|TestSnellReuse' -count=5 -timeout=60s
+          go test -race ./transport/snell -run 'TestPoolConn' -count=10 -timeout=60s
 
   build:
     needs: checks
