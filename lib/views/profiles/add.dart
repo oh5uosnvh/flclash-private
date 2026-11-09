@@ -1,14 +1,14 @@
 import 'dart:async';
 
 import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/features/form/form.dart';
 import 'package:fl_clash/pages/scan.dart';
 import 'package:fl_clash/plugins/app.dart';
 import 'package:fl_clash/providers/providers.dart';
 import 'package:fl_clash/ui/icons/icons.dart';
 import 'package:fl_clash/views/profiles/custom/custom.dart';
+import 'package:fl_clash/features/form/form.dart';
 import 'package:fl_clash/widgets/widgets.dart';
-import 'package:flutter/widgets.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// The ways to add a profile, in a menu out of the control [builder] makes.
@@ -127,33 +127,33 @@ class AddProfileMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final appLocalizations = context.appLocalizations;
-    return PopupAnchor(
+    return CommonPopupBox(
       targetBuilder: builder,
-      popupBuilder: (_) => PopupMenu(
+      popupBuilder: (_) => CommonPopupMenu(
         items: [
-          PopupMenuItem(
+          CommonPopupMenuItem(
             glyph: AppGlyphs.qrCode,
             label: appLocalizations.qrcode,
             onPressed: () => _toScan(context, ref),
           ),
-          PopupMenuItem(
+          CommonPopupMenuItem(
             glyph: AppGlyphs.importFile,
             label: appLocalizations.file,
             onPressed: () => _handleAddProfileFormFile(ref),
           ),
-          PopupMenuItem(
+          CommonPopupMenuItem(
             glyph: AppGlyphs.cloudDownload,
             label: appLocalizations.link,
             onPressed: () => _toAdd(context, ref),
           ),
           if (system.isTV)
-            PopupMenuItem(
+            CommonPopupMenuItem(
               glyph: AppGlyphs.devices,
               label: appLocalizations.sendFromPhone,
               onPressed: () => _toSendFromPhone(ref),
             ),
-          PopupMenuItem(
-            section: const PopupMenuSection(),
+          CommonPopupMenuItem(
+            section: const CommonPopupMenuSection(),
             glyph: AppGlyphs.customize,
             label: appLocalizations.customProfile,
             onPressed: () => _toAddCustom(context, ref),
@@ -222,7 +222,7 @@ class _SendFromPhoneDialogState extends State<_SendFromPhoneDialog> {
     if (address == null) {
       return const SizedBox.square(
         dimension: 96,
-        child: Center(child: ActivityIndicator()),
+        child: Center(child: CommonCircleLoading()),
       );
     }
     return Column(
@@ -238,7 +238,7 @@ class _SendFromPhoneDialogState extends State<_SendFromPhoneDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return CommonDialog(
       title: context.appLocalizations.sendFromPhone,
       actions: [
         TextButton(
