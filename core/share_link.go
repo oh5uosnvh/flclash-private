@@ -111,6 +111,8 @@ func encodeShareLink(f proxyFields) string {
 		return encodeVmess(f)
 	case "vless":
 		return encodeVless(f)
+	case "xhttp":
+		return encodeXHTTP(f)
 	case "trojan":
 		return encodeTrojan(f)
 	case "hysteria":
@@ -439,6 +441,20 @@ func encodeAnyTLS(f proxyFields) string {
 	}
 	setIf(query, "hpkp", f.str("fingerprint"))
 	return shareURL("anytls", url.User(f.str("password")), hostPort(f), query, f.str("name"))
+}
+
+func encodeXHTTP(f proxyFields) string {
+	query := url.Values{}
+	setIf(query, "password", f.str("password"))
+	setIf(query, "sess", f.str("sess"))
+	setIf(query, "auth", f.str("auth"))
+	setIf(query, "fake-net-tcp", f.str("fake-net-tcp"))
+	setIf(query, "padding-len", f.str("padding-len"))
+	host := f.str("gateway")
+	if host == "" {
+		host = hostPort(f)
+	}
+	return shareURL("xhttp", nil, host, query, f.str("name"))
 }
 
 func encodeMieru(f proxyFields) string {

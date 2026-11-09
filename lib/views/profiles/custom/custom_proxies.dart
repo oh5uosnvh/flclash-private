@@ -51,6 +51,12 @@ extension on ProxyField {
     ProxyField.grpcServiceName => 'gRPC Service Name',
     ProxyField.xhttpPath => 'XHTTP Path',
     ProxyField.xhttpHost => 'XHTTP Host',
+    ProxyField.xhttpPassword => 'XHTTP Password',
+    ProxyField.xhttpSess => 'XHTTP Session',
+    ProxyField.xhttpAuth => 'XHTTP Auth',
+    ProxyField.xhttpGateway => 'XHTTP Gateway',
+    ProxyField.xhttpFakeNetTcp => 'XHTTP Fake Net TCP',
+    ProxyField.xhttpPaddingLen => 'XHTTP Padding Len',
     ProxyField.mkcpSeed => 'mKCP Seed',
     ProxyField.mkcpHeader => 'mKCP Header',
     ProxyField.mekyaUrl => 'Mekya URL',
@@ -111,7 +117,11 @@ extension on ProxyField {
     ProxyField.publicKey ||
     ProxyField.privateKeyPassphrase ||
     ProxyField.preSharedKey ||
-    ProxyField.authStr => true,
+    ProxyField.authStr ||
+    ProxyField.xhttpPassword ||
+    ProxyField.xhttpSess ||
+    ProxyField.xhttpAuth ||
+    ProxyField.xhttpFakeNetTcp => true,
     _ => false,
   };
 

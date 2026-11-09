@@ -400,6 +400,7 @@ extension CustomProxyExt on CustomProxy {
     'ssr' => const {'server', 'port', 'password', 'cipher', 'obfs', 'protocol'},
     'vmess' => const {'server', 'port', 'uuid', 'alterId', 'cipher'},
     'vless' => const {'server', 'port', 'uuid'},
+    'xhttp' => const {'server', 'port', 'password', 'sess'},
     'snell' => const {'server', 'port', 'psk'},
     'trojan' || 'anytls' => const {'server', 'port', 'password'},
     'hysteria' => const {'server', 'up', 'down'},
@@ -431,6 +432,14 @@ extension CustomProxyExt on CustomProxy {
     ],
     'vmess' => const [ProxyField.cipher, ProxyField.alterId, ProxyField.uuid],
     'vless' => const [ProxyField.uuid],
+    'xhttp' => const [
+      ProxyField.xhttpPassword,
+      ProxyField.xhttpSess,
+      ProxyField.xhttpAuth,
+      ProxyField.xhttpGateway,
+      ProxyField.xhttpFakeNetTcp,
+      ProxyField.xhttpPaddingLen,
+    ],
     'tuic' => const [ProxyField.uuid, ProxyField.password],
     'trojan' || 'anytls' || 'hysteria2' => const [ProxyField.password],
     'hysteria' => const [ProxyField.up, ProxyField.down, ProxyField.authStr],
@@ -513,6 +522,12 @@ extension CustomProxyExt on CustomProxy {
       ProxyField.h2Host || ProxyField.h2Path => _usesNetwork('h2'),
       ProxyField.grpcServiceName => _usesNetwork('grpc'),
       ProxyField.xhttpPath || ProxyField.xhttpHost => _usesNetwork('xhttp'),
+      ProxyField.xhttpPassword ||
+      ProxyField.xhttpSess ||
+      ProxyField.xhttpAuth ||
+      ProxyField.xhttpGateway ||
+      ProxyField.xhttpFakeNetTcp ||
+      ProxyField.xhttpPaddingLen => type == 'xhttp',
       ProxyField.mkcpSeed || ProxyField.mkcpHeader => _usesNetwork('mkcp'),
       ProxyField.mekyaUrl => _usesNetwork('mekya'),
       ProxyField.headers => type == 'http',
