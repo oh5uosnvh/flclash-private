@@ -245,6 +245,7 @@ const customProxyTypes = [
   'http',
   'vmess',
   'vless',
+  'xhttp',
   'snell',
   'trojan',
   'hysteria',
