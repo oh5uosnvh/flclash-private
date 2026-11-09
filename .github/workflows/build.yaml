@@ -28,6 +28,9 @@ jobs:
     if: &checks github.event_name == 'workflow_dispatch' || !github.event.repository.private
     runs-on: ubuntu-latest
     steps:
+      - name: Configure private submodule access
+        run: |
+          git config --global url."https://${{ secrets.SUBMODULE_TOKEN }}@github.com/".insteadOf "https://github.com/"
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -80,6 +83,9 @@ jobs:
     if: *checks
     runs-on: ubuntu-latest
     steps:
+      - name: Configure private submodule access
+        run: |
+          git config --global url."https://${{ secrets.SUBMODULE_TOKEN }}@github.com/".insteadOf "https://github.com/"
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -118,6 +124,9 @@ jobs:
           - platform: macos
             os: macos-latest
     steps:
+      - name: Configure private submodule access
+        run: |
+          git config --global url."https://${{ secrets.SUBMODULE_TOKEN }}@github.com/".insteadOf "https://github.com/"
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -177,6 +186,9 @@ jobs:
     if: *checks
     runs-on: ubuntu-latest
     steps:
+      - name: Configure private submodule access
+        run: |
+          git config --global url."https://${{ secrets.SUBMODULE_TOKEN }}@github.com/".insteadOf "https://github.com/"
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -221,6 +233,9 @@ jobs:
     if: *checks
     runs-on: ubuntu-latest
     steps:
+      - name: Configure private submodule access
+        run: |
+          git config --global url."https://${{ secrets.SUBMODULE_TOKEN }}@github.com/".insteadOf "https://github.com/"
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -288,6 +303,9 @@ jobs:
     if: *checks
     runs-on: ubuntu-latest
     steps:
+      - name: Configure private submodule access
+        run: |
+          git config --global url."https://${{ secrets.SUBMODULE_TOKEN }}@github.com/".insteadOf "https://github.com/"
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -314,6 +332,9 @@ jobs:
     if: *checks
     runs-on: windows-2022
     steps:
+      - name: Configure private submodule access
+        run: |
+          git config --global url."https://${{ secrets.SUBMODULE_TOKEN }}@github.com/".insteadOf "https://github.com/"
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -369,6 +390,9 @@ jobs:
           $cargoPath = "$env:USERPROFILE\.cargo\bin"
           Add-Content $env:GITHUB_PATH $cargoPath
 
+      - name: Configure private submodule access
+        run: |
+          git config --global url."https://${{ secrets.SUBMODULE_TOKEN }}@github.com/".insteadOf "https://github.com/"
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -472,6 +496,9 @@ jobs:
         ports:
           - 8081:8081
     steps:
+      - name: Configure private submodule access
+        run: |
+          git config --global url."https://${{ secrets.SUBMODULE_TOKEN }}@github.com/".insteadOf "https://github.com/"
       - name: Checkout
         uses: actions/checkout@v4
         with:
