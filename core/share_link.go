@@ -14,17 +14,21 @@ import (
 // Each link is written for convert.ConvertsV2Ray to read back, so the two
 // stay in step; a type with no link form, or a mapping whose server, plugin or
 // transport the converter cannot read back from a link, encodes to "".
-func handleEncodeShareLinks(mappings []map[string]any) []string {
-	links := make([]string, len(mappings))
-	for i, mapping := range mappings {
+func handleEncodeShareLinks(params ProxiesParams) []string {
+	links := make([]string, len(params.Proxies))
+	for i, mapping := range params.Proxies {
 		links[i] = encodeShareLink(proxyFields(mapping))
 	}
 	return links
 }
 
-func handleDecodeShareLinks(lines []string) [][]map[string]any {
-	results := make([][]map[string]any, len(lines))
-	for i, line := range lines {
+func handleDecodeShareLinks(params LinesParams) [][]map[string]any {
+	results := make([][]map[string]any, len(params.Lines))
+	for i, line := range params.Lines {
+		if proxy, ok := decodeBlackstoneXHTTP(line); ok {
+			results[i] = []map[string]any{proxy}
+			continue
+		}
 		proxies, err := convert.ConvertsV2Ray([]byte(line))
 		if err != nil {
 			proxies = []map[string]any{}
@@ -32,6 +36,26 @@ func handleDecodeShareLinks(lines []string) [][]map[string]any {
 		results[i] = proxies
 	}
 	return results
+}
+
+func decodeBlackstoneXHTTP(line string) (map[string]any, bool) {
+	link, err := url.Parse(strings.TrimSpace(line))
+	if err != nil || !strings.EqualFold(link.Scheme, "xhttp") || link.Hostname() == "" || link.Port() == "" {
+		return nil, false
+	}
+	proxy := map[string]any{
+		"name":    link.Fragment,
+		"type":    "xhttp",
+		"server":  link.Hostname(),
+		"port":    link.Port(),
+		"gateway": net.JoinHostPort(link.Hostname(), link.Port()),
+	}
+	for _, key := range []string{"password", "sess", "auth", "gateway", "fake-net-tcp", "padding-len"} {
+		if value := link.Query().Get(key); value != "" {
+			proxy[key] = value
+		}
+	}
+	return proxy, true
 }
 
 type proxyFields map[string]any
@@ -111,6 +135,8 @@ func encodeShareLink(f proxyFields) string {
 		return encodeVmess(f)
 	case "vless":
 		return encodeVless(f)
+	case "xhttp":
+		return encodeXHTTP(f)
 	case "trojan":
 		return encodeTrojan(f)
 	case "hysteria":
@@ -332,6 +358,20 @@ func vShareQuery(f proxyFields) url.Values {
 		query.Set("type", network)
 	}
 	return query
+}
+
+func encodeXHTTP(f proxyFields) string {
+	query := url.Values{}
+	setIf(query, "password", f.str("password"))
+	setIf(query, "sess", f.str("sess"))
+	setIf(query, "auth", f.str("auth"))
+	setIf(query, "fake-net-tcp", f.str("fake-net-tcp"))
+	setIf(query, "padding-len", f.str("padding-len"))
+	host := f.str("gateway")
+	if host == "" {
+		host = hostPort(f)
+	}
+	return shareURL("xhttp", nil, host, query, f.str("name"))
 }
 
 func encodeTrojan(f proxyFields) string {

@@ -346,6 +346,7 @@ const _proxyTypes = [
   'masque',
   'trusttunnel',
   'openvpn',
+  'xhttp',
   'tailscale',
   'zerotier',
   'direct',
@@ -546,6 +547,23 @@ const _vlessTransport = {
     }),
   }),
   'smux': _smux,
+};
+
+const _blackstoneXhttp = {
+  ..._server,
+  'udp': _bool,
+  ..._tcpDial,
+  'password': _str,
+  'sess': _str,
+  'auth': _str,
+  'gateway': _str,
+  'gateway-server': _str,
+  'gateway-port': _str,
+  'fake-net-tcp': _str,
+  'padding-len': _str,
+  'cipher': _str,
+  'udp-over-tcp': _bool,
+  'udp-over-tcp-version': _str,
 };
 
 const _xhttpPlacement = YamlSchema.scalar([
@@ -802,6 +820,7 @@ const _proxyVariants = <String, Map<String, YamlSchema>>{
     ..._reality,
     ..._vlessTransport,
   },
+  'xhttp': _blackstoneXhttp,
   'trojan': {
     ..._server,
     'udp': _bool,
