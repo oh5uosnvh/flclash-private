@@ -471,6 +471,7 @@ extension CustomProxyExt on CustomProxy {
       if (const {
         ProxyField.username,
         ProxyField.password,
+        ProxyField.xhttpPassword,
         ProxyField.uuid,
       }.contains(field))
         field,
