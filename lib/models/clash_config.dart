@@ -402,7 +402,7 @@ extension CustomProxyExt on CustomProxy {
     'ssr' => const {'server', 'port', 'password', 'cipher', 'obfs', 'protocol'},
     'vmess' => const {'server', 'port', 'uuid', 'alterId', 'cipher'},
     'vless' => const {'server', 'port', 'uuid'},
-    'xhttp' => const {'server', 'port', 'password', 'sess'},
+    'xhttp' => const {'server', 'port'},
     'snell' => const {'server', 'port', 'psk'},
     'trojan' || 'anytls' => const {'server', 'port', 'password'},
     'hysteria' => const {'server', 'up', 'down'},
