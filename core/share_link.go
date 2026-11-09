@@ -365,13 +365,10 @@ func encodeXHTTP(f proxyFields) string {
 	setIf(query, "password", f.str("password"))
 	setIf(query, "sess", f.str("sess"))
 	setIf(query, "auth", f.str("auth"))
+	setIf(query, "gateway", f.str("gateway"))
 	setIf(query, "fake-net-tcp", f.str("fake-net-tcp"))
 	setIf(query, "padding-len", f.str("padding-len"))
-	host := f.str("gateway")
-	if host == "" {
-		host = hostPort(f)
-	}
-	return shareURL("xhttp", nil, host, query, f.str("name"))
+	return shareURL("xhttp", nil, hostPort(f), query, f.str("name"))
 }
 
 func encodeTrojan(f proxyFields) string {

@@ -713,7 +713,7 @@ enum ProxyField {
   xhttpAuth(['auth'], ProxyFieldKind.secret),
   xhttpGateway(['gateway']),
   xhttpFakeNetTcp(['fake-net-tcp'], ProxyFieldKind.secret),
-  xhttpPaddingLen(['padding-len'], ProxyFieldKind.number),
+  xhttpPaddingLen(['padding-len']),
   mkcpSeed(['mkcp-opts', 'seed'], ProxyFieldKind.secret),
   mkcpHeader(['mkcp-opts', 'header'], ProxyFieldKind.choice),
   mekyaUrl(['mekya-opts', 'url']),

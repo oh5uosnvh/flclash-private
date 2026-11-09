@@ -54,6 +54,7 @@ extension on ProxyField {
     ProxyField.xhttpAuth => 'XHTTP Auth',
     ProxyField.xhttpGateway => 'XHTTP Gateway',
     ProxyField.xhttpFakeNetTcp => 'XHTTP Fake Net TCP',
+    ProxyField.xhttpPaddingLen => 'XHTTP Padding Length',
     ProxyField.mkcpSeed => 'mKCP Seed',
     ProxyField.mkcpHeader => 'mKCP Header',
     ProxyField.mekyaUrl => 'Mekya URL',
