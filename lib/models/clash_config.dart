@@ -403,6 +403,7 @@ extension CustomProxyExt on CustomProxy {
     'vmess' => const {'server', 'port', 'uuid', 'alterId', 'cipher'},
     'vless' => const {'server', 'port', 'uuid'},
     'xhttp' => const {'server', 'port'},
+    'oppa' => const {'server', 'port', 'password'},
     'snell' => const {'server', 'port', 'psk'},
     'trojan' || 'anytls' => const {'server', 'port', 'password'},
     'hysteria' => const {'server', 'up', 'down'},
