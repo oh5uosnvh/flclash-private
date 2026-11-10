@@ -832,7 +832,13 @@ extension CustomProxyExt on CustomProxy {
       return this;
     }
     var next = withValue('type', type);
+    final seenPaths = <List<String>>{};
     for (final field in ProxyField.values) {
+      // Several fields read the same key, like `password` across types and
+      // xhttp's own password; clearing one clears them all.
+      if (!seenPaths.add(field.path)) {
+        continue;
+      }
       final value = next.valueOf(field);
       if (value == null) {
         continue;
