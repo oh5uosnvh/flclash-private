@@ -444,7 +444,7 @@ extension CustomProxyExt on CustomProxy {
     ],
     'tuic' => const [ProxyField.uuid, ProxyField.password],
     'trojan' || 'anytls' || 'hysteria2' || 'oppa' =>
-        const [ProxyField.password],
+      const [ProxyField.password],
     'hysteria' => const [ProxyField.up, ProxyField.down, ProxyField.authStr],
     'snell' => const [ProxyField.psk],
     'sudoku' => const [ProxyField.key],
