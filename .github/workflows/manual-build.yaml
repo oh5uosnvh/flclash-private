@@ -46,6 +46,15 @@ jobs:
 
       # The override contract tests read the core's parse surface straight off
       # the filesystem, so the kernel has to be there even without a build.
+      - name: Fetch prism_ui submodule
+        shell: bash
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          git clone "https://x-access-token:${GH_PAT}@github.com/oh5uosnvh/prism_ui.git" plugins/prism_ui
+          cd plugins/prism_ui
+          git checkout 63450c0ac0e8e1b2c0f3ed4ad7926dc94e083185 || true
+
       - name: Fetch kernel (clash-meta-mods)
         shell: bash
         env:
@@ -144,6 +153,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: false
+
+      - name: Fetch prism_ui submodule
+        if: steps.gate.outputs.run == 'true'
+        shell: bash
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          git clone "https://x-access-token:${GH_PAT}@github.com/oh5uosnvh/prism_ui.git" plugins/prism_ui
+          cd plugins/prism_ui
+          git checkout 63450c0ac0e8e1b2c0f3ed4ad7926dc94e083185 || true
 
       - name: Fetch kernel (clash-meta-mods)
         if: steps.gate.outputs.run == 'true'
