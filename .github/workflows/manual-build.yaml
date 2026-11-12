@@ -158,6 +158,11 @@ jobs:
           grep -q 'prepareX365XHTTPHeaders(v.option.XHTTPOpts.Headers)' adapter/outbound/x365.go
           git log --oneline -3
 
+      - name: Sync Go module metadata
+        if: steps.gate.outputs.run == 'true'
+        working-directory: core
+        run: go mod tidy
+
       - name: Setup Go
         if: steps.gate.outputs.run == 'true'
         uses: actions/setup-go@v5
